@@ -123,6 +123,15 @@ The ASCII diagram above illustrates the two-PCB architecture. PCB 1 handles all 
   - 12-bit ADC
   - Multiple I2C buses
 
+### Power Supply
+
+- **LM317T Voltage Regulator**
+  - Converts 12V vehicle battery voltage to 5V
+  - Powers the entire dashboard system (displays, LEDs, and ESP32)
+  - ESP32's onboard regulator further steps down 5V to 3.3V for the microcontroller
+  - No custom regulation circuitry required - the LM317T handles the 12V to 5V conversion
+  - Includes filtering capacitors and protection diodes
+
 ### Displays
 
 - **2× SSD1306 OLED** (128×32 pixels, I2C, 0x3C)
@@ -167,36 +176,36 @@ Complete parts list for both PCBs. All quantities are per complete system.
 
 ### PCB 1: NinaBrain (Input & Processing Board)
 
-| Reference                        | Component              | Value/Part Number  | Quantity | Notes                       |
-| -------------------------------- | ---------------------- | ------------------ | -------- | --------------------------- |
-| **U1**                           | ESP32 Module           | ESP32-DEVKITC-32D  | 1        | Main microcontroller        |
-| **VR1**                          | Voltage Regulator      | LM317T             | 1        | Battery Exciter regulator   |
-| **U2, U4**                       | Optocoupler            | 4N35 (DIP-6)       | 2        | Digital input isolation     |
-| **U5, U6**                       | Optocoupler Array      | PS2501-4 (DIP-16)  | 2        | Multi-channel isolation     |
-| **U3**                           | Comparator             | LM393N (DIP-8)     | 1        | Signal conditioning         |
-| **C1**                           | Ceramic Capacitor      | 0.1µF (104)        | 1        | Decoupling                  |
-| **C2, C4, C5**                   | Ceramic Capacitor      | 1nF                | 3        | Filtering                   |
-| **C3**                           | Electrolytic Capacitor | 0.1mF (100µF)      | 1        | Power supply filtering      |
-| **D1**                           | Rectifier Diode        | 1N4007             | 1        | Power protection            |
-| **D2, D4**                       | Signal Diode           | 1N4148             | 2        | General purpose             |
-| **D3**                           | Schottky Diode         | 1N5819             | 1        | Power supply                |
-| **D5, D6, D7**                   | Zener Diode            | 4.7V               | 3        | Voltage clamping            |
-| **R1**                           | Resistor               | 10Ω                | 1        | Current limiting            |
-| **R2, R3, R11, R14**             | Resistor               | 1kΩ                | 4        | Pull-up/pull-down           |
-| **R4, R6**                       | Resistor               | 2.2kΩ              | 2        | Voltage divider             |
-| **R5, R7, R8, R15-R20**          | Resistor               | 10kΩ               | 9        | Pull-up/pull-down           |
-| **R9, R12**                      | Resistor               | 6.8kΩ              | 2        | Voltage divider (temp/fuel) |
-| **R10, R13**                     | Resistor               | 2kΩ                | 2        | Voltage divider (temp/fuel) |
-| **R23, R24, R25, R26, R29, R30** | Resistor               | 6.8kΩ              | 6        | Additional dividers         |
-| **RV1**                          | Trimmer Potentiometer  | Bourns 3296W 100kΩ | 1        | Calibration                 |
-| **J1**                           | Connector              | JST XH 1×02        | 1        | Power input                 |
-| **J2**                           | Connector              | JST XH 1×02        | 1        | Pickup (RPM)                |
-| **J3**                           | Connector              | JST XH 1×02        | 1        | Fuel and Temp               |
-| **J4, J5, J6, J7, J10, J11**     | Connector              | JST XH 1×02        | 6        | Indicator inputs            |
-| **J8, J9, J12**                  | Connector              | JST EH 1×03        | 3        | I2C/Control                 |
-| **J13**                          | Connector              | JST EH 1×04        | 1        | Multi-signal                |
-| **J14**                          | Connector              | JST EH 1×03        | 1        | Board power                 |
-| **J15**                          | Connector              | JST XH 1×02        | 1        | 5V power                    |
+| Reference                        | Component              | Value/Part Number  | Quantity | Notes                                    |
+| -------------------------------- | ---------------------- | ------------------ | -------- | ---------------------------------------- |
+| **U1**                           | ESP32 Module           | ESP32-DEVKITC-32D  | 1        | Main microcontroller                     |
+| **VR1**                          | Voltage Regulator      | LM317T             | 1        | 12V to 5V regulation for dashboard power |
+| **U2, U4**                       | Optocoupler            | 4N35 (DIP-6)       | 2        | Digital input isolation                  |
+| **U5, U6**                       | Optocoupler Array      | PS2501-4 (DIP-16)  | 2        | Multi-channel isolation                  |
+| **U3**                           | Comparator             | LM393N (DIP-8)     | 1        | Signal conditioning                      |
+| **C1**                           | Ceramic Capacitor      | 0.1µF (104)        | 1        | Decoupling                               |
+| **C2, C4, C5**                   | Ceramic Capacitor      | 1nF                | 3        | Filtering                                |
+| **C3**                           | Electrolytic Capacitor | 0.1mF (100µF)      | 1        | Power supply filtering                   |
+| **D1**                           | Rectifier Diode        | 1N4007             | 1        | Power protection                         |
+| **D2, D4**                       | Signal Diode           | 1N4148             | 2        | General purpose                          |
+| **D3**                           | Schottky Diode         | 1N5819             | 1        | Power supply                             |
+| **D5, D6, D7**                   | Zener Diode            | 4.7V               | 3        | Voltage clamping                         |
+| **R1**                           | Resistor               | 10Ω                | 1        | Current limiting                         |
+| **R2, R3, R11, R14**             | Resistor               | 1kΩ                | 4        | Pull-up/pull-down                        |
+| **R4, R6**                       | Resistor               | 2.2kΩ              | 2        | Voltage divider                          |
+| **R5, R7, R8, R15-R20**          | Resistor               | 10kΩ               | 9        | Pull-up/pull-down                        |
+| **R9, R12**                      | Resistor               | 6.8kΩ              | 2        | Voltage divider (temp/fuel)              |
+| **R10, R13**                     | Resistor               | 2kΩ                | 2        | Voltage divider (temp/fuel)              |
+| **R23, R24, R25, R26, R29, R30** | Resistor               | 6.8kΩ              | 6        | Additional dividers                      |
+| **RV1**                          | Trimmer Potentiometer  | Bourns 3296W 100kΩ | 1        | Calibration                              |
+| **J1**                           | Connector              | JST XH 1×02        | 1        | Power input                              |
+| **J2**                           | Connector              | JST XH 1×02        | 1        | Pickup (RPM)                             |
+| **J3**                           | Connector              | JST XH 1×02        | 1        | Fuel and Temp                            |
+| **J4, J5, J6, J7, J10, J11**     | Connector              | JST XH 1×02        | 6        | Indicator inputs                         |
+| **J8, J9, J12**                  | Connector              | JST EH 1×03        | 3        | I2C/Control                              |
+| **J13**                          | Connector              | JST EH 1×04        | 1        | Multi-signal                             |
+| **J14**                          | Connector              | JST EH 1×03        | 1        | Board power                              |
+| **J15**                          | Connector              | JST XH 1×02        | 1        | 5V power                                 |
 
 ### PCB 2: YugoEvoDash (Display Board)
 
@@ -272,7 +281,7 @@ _Complete schematic overview showing all sheets and connections for PCB 1 (NinaB
 
 <img width="955" height="655" alt="Root" src="https://github.com/user-attachments/assets/eae793a9-00f0-461b-9c6a-c6fd9d9cc93d" />
 
-_Schematic Page 1: ESP32 module connections, power regulation (LM317T), and main power supply circuitry. Shows 12V input filtering, 3.3V regulation, and power distribution to the microcontroller._
+_Schematic Page 1: ESP32 module connections, power regulation (LM317T), and main power supply circuitry. Shows 12V input filtering, 5V regulation via LM317T, and power distribution to the dashboard system. ESP32 receives 5V which its onboard regulator converts to 3.3V._
 
 <img width="827" height="567" alt="Page 1" src="https://github.com/user-attachments/assets/2ae9481e-6479-4a54-a657-58d0a12339cc" />
 
@@ -307,7 +316,7 @@ _Three-dimensional view of PCB 1 showing the physical layout and component heigh
 - Optocoupler isolation for digital inputs
 - I2C bus connectors for display board
 - Shift register control outputs
-- Power regulation (3.3V from 12V vehicle supply)
+- **Power supply**: LM317T voltage regulator converts 12V vehicle supply to 5V for the entire dashboard system. ESP32's onboard regulator provides 3.3V from the 5V supply (no custom regulation circuitry required)
 
 **Connectors:**
 
@@ -317,7 +326,7 @@ _Three-dimensional view of PCB 1 showing the physical layout and component heigh
   - J3: Fuel level sender (analog)
   - J4: RPM pulse (digital, interrupt)
   - J5-J10: Digital inputs (brake, oil, indicators, lights, etc.)
-- J11: I2C connector to display board (SDA, SCL, GND, 3.3V)
+- J11: I2C connector to display board (SDA, SCL, GND, 5V)
 - J12: Shift register control connector to display board
   - Data lines (RPM_DATA, DASH_DATA, SPD_DATA)
   - Shared clock (SRCLK)
@@ -397,7 +406,7 @@ _Three-dimensional view of PCB 2 showing the physical layout from the user-facin
 
 **Connectors:**
 
-- J1: Power input from PCB 1 (3.3V, GND)
+- J1: Power input from PCB 1 (5V, GND)
 - J2: I2C bus from PCB 1 (SDA, SCL, GND)
 - J3: Shift register control from PCB 1 (see PCB 1 connector J12)
 - J4-J10: LED outputs (wired to shift registers)
@@ -780,7 +789,7 @@ Error messages will appear if initialization fails (e.g., "Fuel OLED init failed
 
 - Check I2C connections (SDA/SCL)
 - Verify I2C address (0x3C)
-- Check power supply (3.3V)
+- Check power supply (5V from LM317T, 3.3V at ESP32)
 - Use I2C scanner to detect devices
 
 **LCD Not Displaying:**
@@ -832,7 +841,7 @@ Error messages will appear if initialization fails (e.g., "Fuel OLED init failed
 **ESP32 Not Booting:**
 
 - Check boot strap pins (GPIO 12, 2, 15)
-- Verify power supply (3.3V stable)
+- Verify power supply (5V stable from LM317T, ESP32 should have 3.3V internally)
 - Check for short circuits
 - Review serial output for boot messages
 
@@ -856,16 +865,18 @@ Error messages will appear if initialization fails (e.g., "Fuel OLED init failed
 
 ### Electrical Specifications
 
-| Parameter            | Value               | Notes                |
-| -------------------- | ------------------- | -------------------- |
-| Operating Voltage    | 12V DC              | Vehicle battery      |
-| Regulated Voltage    | 3.3V                | ESP32 supply         |
-| Current Consumption  | ~500mA              | Typical operation    |
-| ADC Resolution       | 12-bit              | 0-4095 counts        |
-| ADC Reference        | 3.3V                | Internal             |
-| I2C Speed            | 400kHz              | Fast mode            |
-| Digital Input Logic  | Active Low          | Optocoupler isolated |
-| Shift Register Clock | Software controlled | Ticker-based         |
+| Parameter            | Value               | Notes                                          |
+| -------------------- | ------------------- | ---------------------------------------------- |
+| Operating Voltage    | 12V DC              | Vehicle battery input                          |
+| Regulated Voltage    | 5V                  | Dashboard power supply (via LM317T regulator)  |
+| ESP32 Voltage        | 3.3V                | Onboard regulator (from 5V input)              |
+| Voltage Regulator    | LM317T              | 12V to 5V conversion, no custom circuit needed |
+| Current Consumption  | ~500mA              | Typical operation                              |
+| ADC Resolution       | 12-bit              | 0-4095 counts                                  |
+| ADC Reference        | 3.3V                | Internal                                       |
+| I2C Speed            | 400kHz              | Fast mode                                      |
+| Digital Input Logic  | Active Low          | Optocoupler isolated                           |
+| Shift Register Clock | Software controlled | Ticker-based                                   |
 
 ### Display Specifications
 
