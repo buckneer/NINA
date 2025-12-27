@@ -1,4 +1,4 @@
-# NINA - NINABrain Car Dashboard System
+# NINA
 
 A comprehensive, modern car dashboard system built on ESP32, featuring real-time sensor monitoring, digital displays, and LED indicators. The system is designed as a modular two-PCB solution for maximum flexibility and reliability.
 
