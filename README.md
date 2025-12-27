@@ -157,6 +157,96 @@ The system is built on a **two-PCB architecture**:
 
 ---
 
+## Bill of Materials (BOM)
+
+Complete parts list for both PCBs. All quantities are per complete system.
+
+### PCB 1: NinaBrain (Input & Processing Board)
+
+| Reference | Component | Value/Part Number | Quantity | Notes |
+|-----------|-----------|-------------------|----------|-------|
+| **U1** | ESP32 Module | ESP32-DEVKITC-32D | 1 | Main microcontroller |
+| **VR1** | Voltage Regulator | LM317T | 1 | 3.3V regulation from 12V |
+| **U2, U4** | Optocoupler | 4N35 (DIP-6) | 2 | Digital input isolation |
+| **U5, U6** | Optocoupler Array | PS2501-4 (DIP-16) | 2 | Multi-channel isolation |
+| **U3** | Comparator | LM393N (DIP-8) | 1 | Signal conditioning |
+| **C1** | Ceramic Capacitor | 0.1µF (104) | 1 | Decoupling |
+| **C2, C4, C5** | Ceramic Capacitor | 1nF | 3 | Filtering |
+| **C3** | Electrolytic Capacitor | 0.1mF (100µF) | 1 | Power supply filtering |
+| **D1** | Rectifier Diode | 1N4007 | 1 | Power protection |
+| **D2, D4** | Signal Diode | 1N4148 | 2 | General purpose |
+| **D3** | Schottky Diode | 1N5819 | 1 | Power supply |
+| **D5, D6, D7** | Zener Diode | 4.7V | 3 | Voltage clamping |
+| **R1** | Resistor | 10Ω | 1 | Current limiting |
+| **R2, R3, R11, R14** | Resistor | 1kΩ | 4 | Pull-up/pull-down |
+| **R4, R6** | Resistor | 2.2kΩ | 2 | Voltage divider |
+| **R5, R7, R8, R15-R20** | Resistor | 10kΩ | 9 | Pull-up/pull-down |
+| **R9, R12** | Resistor | 6.8kΩ | 2 | Voltage divider (temp/fuel) |
+| **R10, R13** | Resistor | 2kΩ | 2 | Voltage divider (temp/fuel) |
+| **R23, R24, R25, R26, R29, R30** | Resistor | 6.8kΩ | 6 | Additional dividers |
+| **RV1** | Trimmer Potentiometer | Bourns 3296W 100kΩ | 1 | Calibration |
+| **J1** | Connector | JST XH 1×02 | 1 | Power input |
+| **J2** | Connector | JST XH 1×02 | 1 | Pickup (RPM) |
+| **J3** | Connector | JST XH 1×02 | 1 | Fuel and Temp |
+| **J4, J5, J6, J7, J10, J11** | Connector | JST XH 1×02 | 6 | Indicator inputs |
+| **J8, J9, J12** | Connector | JST EH 1×03 | 3 | I2C/Control |
+| **J13** | Connector | JST EH 1×04 | 1 | Multi-signal |
+| **J14** | Connector | JST EH 1×03 | 1 | Board power |
+| **J15** | Connector | JST XH 1×02 | 1 | 5V power |
+
+### PCB 2: YugoEvoDash (Display Board)
+
+| Reference | Component | Value/Part Number | Quantity | Notes |
+|-----------|-----------|-------------------|----------|-------|
+| **FuelGauge1, TempGauge1** | OLED Display | SSD1306 0.91" 128×32 | 2 | I2C, 4-pin |
+| **ODO1** | LCD Display | RC1602A-I2C (16×2) | 1 | HD44780-compatible with I2C backpack |
+| **U1, U2, U3, U5, U6, U7, U8** | Shift Register | 74HC595 (DIP-16) | 7 | 4× RPM, 2× Speedo, 1× Dash |
+| **U4** | 7-Segment Display | E1-3056-CUR-1 | 1 | Optional speedometer digit |
+| **D1-D41** | LED | 5mm LED (Various colors) | 41 | Display LEDs (29× RPM, 8× Dash, 4× others) |
+| **R1-R4** | Resistor | 160Ω | 4 | LED current limiting |
+| **R5-R49** | Resistor | Various (see schematic) | 45 | LED current limiting, pull-ups |
+| **J1** | Connector | JST EH 1×13 | 1 | Main interface to PCB 1 |
+| **J2** | Connector | JST EH 1×03 | 1 | Additional interface |
+
+### Additional Components (Not on PCBs)
+
+| Component | Quantity | Notes |
+|-----------|----------|-------|
+| PCB 1 (NinaBrain) | 1 | Manufactured board |
+| PCB 2 (YugoEvoDash) | 1 | Manufactured board |
+| USB Cable | 1 | For programming ESP32 |
+| Enclosure | 1 | Optional, for protection |
+| Mounting Hardware | - | Standoffs, screws as needed |
+
+### Component Notes
+
+**Optocouplers:**
+- 4N35: Single-channel optocoupler, 6-pin DIP
+- PS2501-4: 4-channel optocoupler array, 16-pin DIP
+- Both provide electrical isolation for vehicle signals
+
+**Voltage Divider Resistors:**
+- R9, R12 (6.8kΩ) and R10, R13 (2kΩ) form voltage dividers for analog inputs
+- Additional 6.8kΩ resistors (R23-R26, R29, R30) may be used for other sensor inputs
+
+**LED Specifications:**
+- 29 LEDs for RPM bar graph
+- 8 LEDs for warning lights
+- 4 additional LEDs (possibly for status or speedometer)
+- Current limiting resistors: 160Ω (R1-R4) for high-brightness LEDs
+
+**Connectors:**
+- JST XH series: 2.50mm pitch, for signal connections
+- JST EH series: 2.50mm pitch, for power and multi-pin connections
+- All connectors use vertical mount orientation
+
+**Capacitor Values:**
+- 104 = 0.1µF (100nF)
+- 1nF = 1000pF
+- 0.1mF = 100µF (likely electrolytic)
+
+---
+
 ## PCB Design
 
 ### PCB 1: Input & Processing Board
