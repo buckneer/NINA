@@ -9,6 +9,7 @@ A comprehensive, modern car dashboard system built on ESP32, featuring real-time
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Hardware Components](#hardware-components)
+- [Bill of Materials (BOM)](#bill-of-materials-bom)
 - [PCB Design](#pcb-design)
 - [Pin Assignments](#pin-assignments)
 - [Software Architecture](#software-architecture)
@@ -18,6 +19,9 @@ A comprehensive, modern car dashboard system built on ESP32, featuring real-time
 - [Usage](#usage)
 - [Troubleshooting](#troubleshooting)
 - [Technical Specifications](#technical-specifications)
+- [Future Enhancements](#future-enhancements)
+- [Contributing](#contributing)
+- [Safety & Warnings](#safety--warnings)
 - [License](#license)
 
 ---
@@ -104,7 +108,7 @@ The system is built on a **two-PCB architecture**:
 └─────────────────────────────────────────────┘
 ```
 
-> 📸 **TODO**: Add detailed block diagram image
+The ASCII diagram above illustrates the two-PCB architecture. PCB 1 handles all sensor inputs and processing, while PCB 2 manages all display outputs. Communication between the boards uses I2C buses and shift register control lines.
 
 ---
 
@@ -163,87 +167,95 @@ Complete parts list for both PCBs. All quantities are per complete system.
 
 ### PCB 1: NinaBrain (Input & Processing Board)
 
-| Reference | Component | Value/Part Number | Quantity | Notes |
-|-----------|-----------|-------------------|----------|-------|
-| **U1** | ESP32 Module | ESP32-DEVKITC-32D | 1 | Main microcontroller |
-| **VR1** | Voltage Regulator | LM317T | 1 | 3.3V regulation from 12V |
-| **U2, U4** | Optocoupler | 4N35 (DIP-6) | 2 | Digital input isolation |
-| **U5, U6** | Optocoupler Array | PS2501-4 (DIP-16) | 2 | Multi-channel isolation |
-| **U3** | Comparator | LM393N (DIP-8) | 1 | Signal conditioning |
-| **C1** | Ceramic Capacitor | 0.1µF (104) | 1 | Decoupling |
-| **C2, C4, C5** | Ceramic Capacitor | 1nF | 3 | Filtering |
-| **C3** | Electrolytic Capacitor | 0.1mF (100µF) | 1 | Power supply filtering |
-| **D1** | Rectifier Diode | 1N4007 | 1 | Power protection |
-| **D2, D4** | Signal Diode | 1N4148 | 2 | General purpose |
-| **D3** | Schottky Diode | 1N5819 | 1 | Power supply |
-| **D5, D6, D7** | Zener Diode | 4.7V | 3 | Voltage clamping |
-| **R1** | Resistor | 10Ω | 1 | Current limiting |
-| **R2, R3, R11, R14** | Resistor | 1kΩ | 4 | Pull-up/pull-down |
-| **R4, R6** | Resistor | 2.2kΩ | 2 | Voltage divider |
-| **R5, R7, R8, R15-R20** | Resistor | 10kΩ | 9 | Pull-up/pull-down |
-| **R9, R12** | Resistor | 6.8kΩ | 2 | Voltage divider (temp/fuel) |
-| **R10, R13** | Resistor | 2kΩ | 2 | Voltage divider (temp/fuel) |
-| **R23, R24, R25, R26, R29, R30** | Resistor | 6.8kΩ | 6 | Additional dividers |
-| **RV1** | Trimmer Potentiometer | Bourns 3296W 100kΩ | 1 | Calibration |
-| **J1** | Connector | JST XH 1×02 | 1 | Power input |
-| **J2** | Connector | JST XH 1×02 | 1 | Pickup (RPM) |
-| **J3** | Connector | JST XH 1×02 | 1 | Fuel and Temp |
-| **J4, J5, J6, J7, J10, J11** | Connector | JST XH 1×02 | 6 | Indicator inputs |
-| **J8, J9, J12** | Connector | JST EH 1×03 | 3 | I2C/Control |
-| **J13** | Connector | JST EH 1×04 | 1 | Multi-signal |
-| **J14** | Connector | JST EH 1×03 | 1 | Board power |
-| **J15** | Connector | JST XH 1×02 | 1 | 5V power |
+| Reference                        | Component              | Value/Part Number  | Quantity | Notes                       |
+| -------------------------------- | ---------------------- | ------------------ | -------- | --------------------------- |
+| **U1**                           | ESP32 Module           | ESP32-DEVKITC-32D  | 1        | Main microcontroller        |
+| **VR1**                          | Voltage Regulator      | LM317T             | 1        | Battery Exciter regulator   |
+| **U2, U4**                       | Optocoupler            | 4N35 (DIP-6)       | 2        | Digital input isolation     |
+| **U5, U6**                       | Optocoupler Array      | PS2501-4 (DIP-16)  | 2        | Multi-channel isolation     |
+| **U3**                           | Comparator             | LM393N (DIP-8)     | 1        | Signal conditioning         |
+| **C1**                           | Ceramic Capacitor      | 0.1µF (104)        | 1        | Decoupling                  |
+| **C2, C4, C5**                   | Ceramic Capacitor      | 1nF                | 3        | Filtering                   |
+| **C3**                           | Electrolytic Capacitor | 0.1mF (100µF)      | 1        | Power supply filtering      |
+| **D1**                           | Rectifier Diode        | 1N4007             | 1        | Power protection            |
+| **D2, D4**                       | Signal Diode           | 1N4148             | 2        | General purpose             |
+| **D3**                           | Schottky Diode         | 1N5819             | 1        | Power supply                |
+| **D5, D6, D7**                   | Zener Diode            | 4.7V               | 3        | Voltage clamping            |
+| **R1**                           | Resistor               | 10Ω                | 1        | Current limiting            |
+| **R2, R3, R11, R14**             | Resistor               | 1kΩ                | 4        | Pull-up/pull-down           |
+| **R4, R6**                       | Resistor               | 2.2kΩ              | 2        | Voltage divider             |
+| **R5, R7, R8, R15-R20**          | Resistor               | 10kΩ               | 9        | Pull-up/pull-down           |
+| **R9, R12**                      | Resistor               | 6.8kΩ              | 2        | Voltage divider (temp/fuel) |
+| **R10, R13**                     | Resistor               | 2kΩ                | 2        | Voltage divider (temp/fuel) |
+| **R23, R24, R25, R26, R29, R30** | Resistor               | 6.8kΩ              | 6        | Additional dividers         |
+| **RV1**                          | Trimmer Potentiometer  | Bourns 3296W 100kΩ | 1        | Calibration                 |
+| **J1**                           | Connector              | JST XH 1×02        | 1        | Power input                 |
+| **J2**                           | Connector              | JST XH 1×02        | 1        | Pickup (RPM)                |
+| **J3**                           | Connector              | JST XH 1×02        | 1        | Fuel and Temp               |
+| **J4, J5, J6, J7, J10, J11**     | Connector              | JST XH 1×02        | 6        | Indicator inputs            |
+| **J8, J9, J12**                  | Connector              | JST EH 1×03        | 3        | I2C/Control                 |
+| **J13**                          | Connector              | JST EH 1×04        | 1        | Multi-signal                |
+| **J14**                          | Connector              | JST EH 1×03        | 1        | Board power                 |
+| **J15**                          | Connector              | JST XH 1×02        | 1        | 5V power                    |
 
 ### PCB 2: YugoEvoDash (Display Board)
 
-| Reference | Component | Value/Part Number | Quantity | Notes |
-|-----------|-----------|-------------------|----------|-------|
-| **FuelGauge1, TempGauge1** | OLED Display | SSD1306 0.91" 128×32 | 2 | I2C, 4-pin |
-| **ODO1** | LCD Display | RC1602A-I2C (16×2) | 1 | HD44780-compatible with I2C backpack |
-| **U1, U2, U3, U5, U6, U7, U8** | Shift Register | 74HC595 (DIP-16) | 7 | 4× RPM, 2× Speedo, 1× Dash |
-| **U4** | 7-Segment Display | E1-3056-CUR-1 | 1 | Optional speedometer digit |
-| **D1-D41** | LED | 5mm LED (Various colors) | 41 | Display LEDs (29× RPM, 8× Dash, 4× others) |
-| **R1-R4** | Resistor | 160Ω | 4 | LED current limiting |
-| **R5-R49** | Resistor | Various (see schematic) | 45 | LED current limiting, pull-ups |
-| **J1** | Connector | JST EH 1×13 | 1 | Main interface to PCB 1 |
-| **J2** | Connector | JST EH 1×03 | 1 | Additional interface |
+| Reference                      | Component         | Value/Part Number        | Quantity | Notes                                      |
+| ------------------------------ | ----------------- | ------------------------ | -------- | ------------------------------------------ |
+| **FuelGauge1, TempGauge1**     | OLED Display      | SSD1306 0.91" 128×32     | 2        | I2C, 4-pin                                 |
+| **ODO1**                       | LCD Display       | RC1602A-I2C (16×2)       | 1        | HD44780-compatible with I2C backpack       |
+| **U1, U2, U3, U5, U6, U7, U8** | Shift Register    | 74HC595 (DIP-16)         | 7        | 4× RPM, 2× Speedo, 1× Dash                 |
+| **U4**                         | 7-Segment Display | E1-3056-CUR-1            | 1        | Optional speedometer digit                 |
+| **D1-D41**                     | LED               | 5mm LED (Various colors) | 41       | Display LEDs (29× RPM, 8× Dash, 4× others) |
+| **R1-R4**                      | Resistor          | 160Ω                     | 4        | LED current limiting                       |
+| **R5-R49**                     | Resistor          | Various (see schematic)  | 45       | LED current limiting, pull-ups             |
+| **J1**                         | Connector         | JST EH 1×13              | 1        | Main interface to PCB 1                    |
+| **J2**                         | Connector         | JST EH 1×03              | 1        | Additional interface                       |
 
 ### Additional Components (Not on PCBs)
 
-| Component | Quantity | Notes |
-|-----------|----------|-------|
-| PCB 1 (NinaBrain) | 1 | Manufactured board |
-| PCB 2 (YugoEvoDash) | 1 | Manufactured board |
-| USB Cable | 1 | For programming ESP32 |
-| Enclosure | 1 | Optional, for protection |
-| Mounting Hardware | - | Standoffs, screws as needed |
+| Component           | Quantity | Notes                       |
+| ------------------- | -------- | --------------------------- |
+| PCB 1 (NinaBrain)   | 1        | Manufactured board          |
+| PCB 2 (YugoEvoDash) | 1        | Manufactured board          |
+| USB Cable           | 1        | For programming ESP32       |
+| Enclosure           | 1        | Optional, for protection    |
+| Mounting Hardware   | -        | Standoffs, screws as needed |
+
+**Enclosure:**
+
+_Enclosure: Complete assembled system in protective enclosure showing both PCBs mounted and all displays visible. The enclosure protects the electronics from environmental factors while allowing access to displays and connectors._
 
 <img width="738" height="379" alt="Enclosure" src="https://github.com/user-attachments/assets/11748456-ab48-481d-9950-02b444c2c2d1" />
-
 
 ### Component Notes
 
 **Optocouplers:**
+
 - 4N35: Single-channel optocoupler, 6-pin DIP
 - PS2501-4: 4-channel optocoupler array, 16-pin DIP
 - Both provide electrical isolation for vehicle signals
 
 **Voltage Divider Resistors:**
+
 - R9, R12 (6.8kΩ) and R10, R13 (2kΩ) form voltage dividers for analog inputs
 - Additional 6.8kΩ resistors (R23-R26, R29, R30) may be used for other sensor inputs
 
 **LED Specifications:**
+
 - 29 LEDs for RPM bar graph
 - 8 LEDs for warning lights
 - 4 additional LEDs (possibly for status or speedometer)
 - Current limiting resistors: 160Ω (R1-R4) for high-brightness LEDs
 
 **Connectors:**
+
 - JST XH series: 2.50mm pitch, for signal connections
 - JST EH series: 2.50mm pitch, for power and multi-pin connections
 - All connectors use vertical mount orientation
 
 **Capacitor Values:**
+
 - 104 = 0.1µF (100nF)
 - 1nF = 1000pF
 - 0.1mF = 100µF (likely electrolytic)
@@ -254,20 +266,39 @@ Complete parts list for both PCBs. All quantities are per complete system.
 
 ### PCB 1: Input & Processing Board
 
-***SCHEMATICS PCB 1***
+**Schematics:**
+
+_Complete schematic overview showing all sheets and connections for PCB 1 (NinaBrain). The root schematic provides an overview of the entire board layout and component organization._
+
 <img width="955" height="655" alt="Root" src="https://github.com/user-attachments/assets/eae793a9-00f0-461b-9c6a-c6fd9d9cc93d" />
+
+_Schematic Page 1: ESP32 module connections, power regulation (LM317T), and main power supply circuitry. Shows 12V input filtering, 3.3V regulation, and power distribution to the microcontroller._
+
 <img width="827" height="567" alt="Page 1" src="https://github.com/user-attachments/assets/2ae9481e-6479-4a54-a657-58d0a12339cc" />
+
+_Schematic Page 2: Analog input conditioning circuits including voltage dividers for temperature and fuel sensors. Shows ADC input protection and filtering components (R9-R13, R23-R30) configured for ESP32 ADC channels._
+
 <img width="827" height="567" alt="Page 2" src="https://github.com/user-attachments/assets/3babfcc0-e25f-430b-a588-1556efe9fb1b" />
+
+_Schematic Page 3: Digital input isolation using optocouplers (4N35 and PS2501-4). Shows signal conditioning for vehicle digital inputs including brake, oil pressure, indicators, lights, and other warning signals. Includes pull-up resistors and protection diodes._
+
 <img width="827" height="567" alt="Page 3" src="https://github.com/user-attachments/assets/7cab9301-82bf-4bf8-bb14-0b100790a2e2" />
+
+_Schematic Page 4: Shift register control outputs, I2C bus connections, and connector pinouts. Details the connections to PCB 2 including shift register control lines (DATA, CLK, LATCH) and I2C communication buses for displays._
+
 <img width="827" height="567" alt="Page 4" src="https://github.com/user-attachments/assets/affe0f04-790c-4a5f-905e-c6d9ff2fd6fd" />
 
-***Board Layout***
+**PCB Layout:**
+
+_Top view of PCB 1 showing component placement and routing. The board layout demonstrates efficient use of space with clear separation between power, analog, and digital sections. All connectors are positioned for easy access and cable management._
+
 <img width="652" height="568" alt="PCB" src="https://github.com/user-attachments/assets/85da70bf-790d-48e3-b4c4-2afbe766f098" />
 
-***3D***
+**3D Render:**
+
+_Three-dimensional view of PCB 1 showing the physical layout and component heights. This view helps visualize the final assembly and identifies any potential clearance issues with connectors or tall components like the ESP32 module and voltage regulator heatsink._
+
 <img width="474" height="399" alt="3D render" src="https://github.com/user-attachments/assets/4f029aff-c06f-4215-8fa3-f2ae8fc2e759" />
-
-
 
 **Key Features:**
 
@@ -297,24 +328,43 @@ Complete parts list for both PCBs. All quantities are per complete system.
 
 ### PCB 2: Display Board
 
+**Schematics:**
 
-***SCHEMATICS PCB 1***
+_Complete schematic overview showing all sheets and connections for PCB 2 (YugoEvoDash). The root schematic provides an overview of the display board layout including all shift registers, displays, and LED arrays._
+
 <img width="827" height="569" alt="Root" src="https://github.com/user-attachments/assets/f0549a58-7465-4a83-8d40-28683435b201" />
+
+_Schematic Page 1: Main interface connector (J1) receiving signals from PCB 1, power distribution, and I2C bus connections. Shows how power and control signals are routed from the input board to various display subsystems._
+
 <img width="827" height="569" alt="Page 1" src="https://github.com/user-attachments/assets/2302db95-faec-4ba4-afee-028469adc9f4" />
+
+_Schematic Page 2: OLED display connections (FuelGauge1 and TempGauge1) on separate I2C buses. Shows SSD1306 display modules with their I2C pull-up resistors and power connections. Each OLED is connected to a dedicated I2C bus from PCB 1._
+
 <img width="827" height="569" alt="Page 2" src="https://github.com/user-attachments/assets/c8964301-3133-495a-8b03-95bf86765d4c" />
+
+_Schematic Page 3: LCD display (ODO1 - RC1602A-I2C) connection and shift register control interface. Shows the HD44780-compatible LCD with I2C backpack connected to I2C Bus 0, sharing the bus with the temperature OLED display._
+
 <img width="827" height="569" alt="Page 3" src="https://github.com/user-attachments/assets/6e2b13b3-8dfd-4dee-95fa-d33453dee982" />
+
+_Schematic Page 4: Shift register array for dash warning lights (1× 74HC595, U8) and speedometer (2× 74HC595, U6-U7). Shows the serial shift register chain with current-limiting resistors for LED segments and warning light LEDs. Includes 7-segment display connections for speedometer digits._
+
 <img width="827" height="569" alt="Page 4" src="https://github.com/user-attachments/assets/39592149-b4cf-4987-b8f2-1cff14e9aab3" />
+
+_Schematic Page 5: RPM bar graph shift register chain (4× 74HC595, U1-U3, U5) driving 29 LEDs. Shows the extensive LED array with current-limiting resistors (160Ω for high-brightness LEDs). The four shift registers are daisy-chained to provide 32 output channels (29 used for RPM display)._
+
 <img width="827" height="569" alt="Page 5" src="https://github.com/user-attachments/assets/99eef488-4210-4ea5-b377-cefd6b3e0c75" />
 
+**PCB Layout:**
 
-***Board Layout***
+_Top view of PCB 2 showing component placement optimized for display visibility and user interface. The layout positions displays at the front edge, shift registers in organized rows, and LEDs in their functional groups (RPM bar, warning lights, speedometer). Connectors are positioned for clean cable routing to PCB 1._
+
 <img width="1053" height="511" alt="PCB 2" src="https://github.com/user-attachments/assets/c4e59a1e-f8c4-4657-8e9d-8fdffa92bf1c" />
 
+**3D Render:**
 
-***3D***
+_Three-dimensional view of PCB 2 showing the physical layout from the user-facing side. This view demonstrates the display placement (OLEDs and LCD), LED positions, and overall panel layout. The 3D render helps visualize the final dashboard appearance and component clearances, especially important for display mounting and LED visibility._
+
 <img width="738" height="379" alt="3D render" src="https://github.com/user-attachments/assets/c8e90ab8-bceb-4a6f-88d0-a38a207dda30" />
-
-
 
 **Key Features:**
 
@@ -919,5 +969,11 @@ For questions, issues, or contributions:
 
 ---
 
-**Last Updated:** 27.12.2025.
+---
+
+**Last Updated:** December 27, 2025  
 **Version:** 1.0.0
+
+---
+
+_This documentation is maintained as part of the NINA project. For questions or contributions, please open an issue on GitHub._
