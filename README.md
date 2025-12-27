@@ -218,6 +218,9 @@ Complete parts list for both PCBs. All quantities are per complete system.
 | Enclosure | 1 | Optional, for protection |
 | Mounting Hardware | - | Standoffs, screws as needed |
 
+<img width="738" height="379" alt="Enclosure" src="https://github.com/user-attachments/assets/11748456-ab48-481d-9950-02b444c2c2d1" />
+
+
 ### Component Notes
 
 **Optocouplers:**
@@ -251,9 +254,20 @@ Complete parts list for both PCBs. All quantities are per complete system.
 
 ### PCB 1: Input & Processing Board
 
-> 📸 **TODO**: Add PCB 1 schematic image
-> 📸 **TODO**: Add PCB 1 board layout image
-> 📸 **TODO**: Add PCB 1 3D render image
+***SCHEMATICS PCB 1***
+<img width="955" height="655" alt="Root" src="https://github.com/user-attachments/assets/eae793a9-00f0-461b-9c6a-c6fd9d9cc93d" />
+<img width="827" height="567" alt="Page 1" src="https://github.com/user-attachments/assets/2ae9481e-6479-4a54-a657-58d0a12339cc" />
+<img width="827" height="567" alt="Page 2" src="https://github.com/user-attachments/assets/3babfcc0-e25f-430b-a588-1556efe9fb1b" />
+<img width="827" height="567" alt="Page 3" src="https://github.com/user-attachments/assets/7cab9301-82bf-4bf8-bb14-0b100790a2e2" />
+<img width="827" height="567" alt="Page 4" src="https://github.com/user-attachments/assets/affe0f04-790c-4a5f-905e-c6d9ff2fd6fd" />
+
+***Board Layout***
+<img width="652" height="568" alt="PCB" src="https://github.com/user-attachments/assets/85da70bf-790d-48e3-b4c4-2afbe766f098" />
+
+***3D***
+<img width="474" height="399" alt="3D render" src="https://github.com/user-attachments/assets/4f029aff-c06f-4215-8fa3-f2ae8fc2e759" />
+
+
 
 **Key Features:**
 
@@ -283,9 +297,24 @@ Complete parts list for both PCBs. All quantities are per complete system.
 
 ### PCB 2: Display Board
 
-> 📸 **TODO**: Add PCB 2 schematic image
-> 📸 **TODO**: Add PCB 2 board layout image
-> 📸 **TODO**: Add PCB 2 3D render image
+
+***SCHEMATICS PCB 1***
+<img width="827" height="569" alt="Root" src="https://github.com/user-attachments/assets/f0549a58-7465-4a83-8d40-28683435b201" />
+<img width="827" height="569" alt="Page 1" src="https://github.com/user-attachments/assets/2302db95-faec-4ba4-afee-028469adc9f4" />
+<img width="827" height="569" alt="Page 2" src="https://github.com/user-attachments/assets/c8964301-3133-495a-8b03-95bf86765d4c" />
+<img width="827" height="569" alt="Page 3" src="https://github.com/user-attachments/assets/6e2b13b3-8dfd-4dee-95fa-d33453dee982" />
+<img width="827" height="569" alt="Page 4" src="https://github.com/user-attachments/assets/39592149-b4cf-4987-b8f2-1cff14e9aab3" />
+<img width="827" height="569" alt="Page 5" src="https://github.com/user-attachments/assets/99eef488-4210-4ea5-b377-cefd6b3e0c75" />
+
+
+***Board Layout***
+<img width="1053" height="511" alt="PCB 2" src="https://github.com/user-attachments/assets/c4e59a1e-f8c4-4657-8e9d-8fdffa92bf1c" />
+
+
+***3D***
+<img width="738" height="379" alt="3D render" src="https://github.com/user-attachments/assets/c8e90ab8-bceb-4a6f-88d0-a38a207dda30" />
+
+
 
 **Key Features:**
 
@@ -885,10 +914,10 @@ Contributions are welcome! Please:
 
 For questions, issues, or contributions:
 
-- GitHub Issues: [repository-url]/issues
+- GitHub Issues: https://buckneer/NINA/issues
 - Documentation: See this README and code comments
 
 ---
 
-**Last Updated:** [Date]
+**Last Updated:** 27.12.2025.
 **Version:** 1.0.0
