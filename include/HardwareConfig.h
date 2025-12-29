@@ -44,6 +44,7 @@ constexpr uint8_t FUEL_SCL = 19;
 
 // I2C device addresses
 constexpr uint8_t OLED_ADDR = 0x3C;
+constexpr uint8_t LCD_ADDR = 0x27; // Common default address for I2C LCD backpacks (may need adjustment)
 
 // =================================================
 // ===== SHIFT REGISTER OUTPUTS (shared SRCLK)

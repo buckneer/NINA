@@ -30,16 +30,16 @@
 // I2C buses
 // =====================
 
-TwoWire I2C_TEMP(0); // Temp OLED + LCD
 TwoWire I2C_FUEL(1); // Fuel OLED
 
 // =====================
-// Display devices
+// Display devices - will be initialized in setup() after I2C is ready
 // =====================
 
-Adafruit_SSD1306 fuelDisp(128, 32, &I2C_FUEL, -1);
-Adafruit_SSD1306 tempDisp(128, 32, &I2C_TEMP, -1);
-hd44780_I2Cexp lcd;
+Adafruit_SSD1306* fuelDispPtr = nullptr;
+Adafruit_SSD1306* tempDispPtr = nullptr;
+// LCD object will be created in setup() after I2C is initialized
+LiquidCrystal_I2C* lcdPtr = nullptr;
 
 // =====================
 // Multiplexers
@@ -77,10 +77,8 @@ Speedo speedo(speedoMux);
 RPMMeter rpm(rpmMux);
 DashLights dash(dashMux);
 
-Displays displays(
-    fuelDisp,
-    tempDisp,
-    lcd);
+// Displays object will be created in setup() after LCD detection
+Displays* displaysPtr = nullptr;
 
 // =====================
 // Sensor wiring (pin injection)
@@ -128,24 +126,61 @@ SpeedInput speedInput(PIN_HALL, SPEEDO_METERS_PER_PULSE);
 
 void setup()
 {
+  Wire.begin(TEMP_SDA, TEMP_SCL, 400000); // Temp OLED + LCD (bus 0)
+  delay(50);
+  I2C_FUEL.begin(FUEL_SDA, FUEL_SCL, 400000);
+  delay(50);
+  
   Serial.begin(115200);
   delay(200);
-
   Serial.println("Dashboard booting...");
+  
+  // Create OLED display objects NOW (after I2C is initialized)
+  static Adafruit_SSD1306 fuelDisp(128, 32, &I2C_FUEL, -1);
+  static Adafruit_SSD1306 tempDisp(128, 32, &Wire, -1);
+  fuelDispPtr = &fuelDisp;
+  tempDispPtr = &tempDisp;
 
-  // --- I2C init
-  I2C_TEMP.begin(TEMP_SDA, TEMP_SCL, 400000);
-  I2C_FUEL.begin(FUEL_SDA, FUEL_SCL, 400000);
-
-  // --- OLED init
-  if (!fuelDisp.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR))
+  // --- OLED init - try to initialize, set flags based on success
+  bool fuelOledConnected = false;
+  bool tempOledConnected = false;
+  
+  if (fuelDisp.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR))
   {
-    Serial.println("Fuel OLED init failed");
+    fuelOledConnected = true;
+    Serial.println("Fuel OLED initialized");
+  } else {
+    Serial.println("Fuel OLED not connected - continuing without it");
   }
-  if (!tempDisp.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR))
+  
+  if (tempDisp.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR))
   {
-    Serial.println("Temp OLED init failed");
+    tempOledConnected = true;
+    Serial.println("Temp OLED initialized");
+  } else {
+    Serial.println("Temp OLED not connected - continuing without it");
   }
+  
+  // LCD initialization
+  bool lcdConnected = false;
+  // Create LCD object (using Wire default instance, same bus 0 as Temp OLED)
+  // LCD address, columns, rows
+  static LiquidCrystal_I2C lcd(LCD_ADDR, 16, 2);
+  lcdPtr = &lcd;
+  delay(50);
+  
+  // Try to initialize LCD
+  lcd.init();
+  delay(100);
+  lcd.backlight();
+  delay(50);
+  lcd.clear();
+  lcdConnected = true;
+  Serial.println("LCD initialized");
+  
+  // Create Displays object (after OLEDs and LCD are created and initialized)
+  static Displays displays(fuelDisp, tempDisp, lcdPtr);
+  displaysPtr = &displays;
 
   // --- Multiplexers
   speedoMux.begin();
@@ -156,14 +191,17 @@ void setup()
   speedo.begin();
   rpm.begin();
   dash.begin();
-  displays.begin();
+  
+  displaysPtr->begin(lcdConnected, fuelOledConnected, tempOledConnected);
 
   // --- Sensor modules
   analogs.begin();
   digitalInputs.begin();
   rpmInput.begin();
 
-  displays.showLCD("DASH READY", "SENSORS ONLINE");
+  if (lcdConnected) {
+    displaysPtr->showLCD("DASH READY", "SENSORS ONLINE");
+  }
   Serial.println("Setup complete");
 }
 
@@ -192,8 +230,62 @@ void loop()
   dash.setHeadlights(digitalInputs.lights());
   dash.setFogLights(digitalInputs.fog());
   dash.setBattery(digitalInputs.battery());
+  // Low fuel warning (below 20%)
+  dash.setLowFuel(analogs.fuelPercent() < LOW_FUEL_THRESHOLD);
 
   // --- Displays
-  displays.showFuel(analogs.fuelPercent());
-  displays.showTemp(analogs.tempPercent());
+  displaysPtr->showFuel(analogs.fuelPercent());
+  displaysPtr->showTemp(analogs.tempPercent());
+
+  // --- Logger (print state every second)
+  static unsigned long lastLogMs = 0;
+  unsigned long now = millis();
+  if (now - lastLogMs >= 1000) {
+    lastLogMs = now;
+    
+    Serial.println("\n=== Dashboard Status ===");
+    Serial.printf("Uptime: %lu s\n", now / 1000);
+    
+    // Sensors
+    Serial.println("\n--- Sensors ---");
+    Serial.printf("Temperature: %d°C (%.1f%%)\n", analogs.tempC(), analogs.tempPercent());
+    
+    // Fuel debug info
+    uint16_t rawFuel = analogRead(PIN_FUEL_ADC);
+    // Validate raw reading before calculating voltage
+    if (rawFuel > ADC_MAX) {
+      Serial.printf("Fuel: %.1f%% (Raw ADC: INVALID/%u, ADC_MAX: %u) - CHECK CONNECTIONS!\n", 
+        analogs.fuelPercent(), rawFuel, ADC_MAX);
+    } else if (rawFuel == 0) {
+      Serial.printf("Fuel: %.1f%% (Raw ADC: 0 - connection glitch, using filtered value)\n", 
+        analogs.fuelPercent());
+    } else {
+      float fuelVoltage = (rawFuel / (float)ADC_MAX) * ADC_REF_V;
+      Serial.printf("Fuel: %.1f%% (Raw ADC: %u, Voltage: %.3fV, Min: %.2fV, Max: %.2fV)\n", 
+        analogs.fuelPercent(), rawFuel, fuelVoltage, FUEL_ADC_V_MIN, FUEL_ADC_V_MAX);
+    }
+    
+    Serial.printf("RPM: %u\n", rpmInput.rpm());
+    Serial.printf("Speed: %.1f km/h\n", speedInput.speedKph());
+    
+    // Digital inputs
+    Serial.println("\n--- Digital Inputs ---");
+    Serial.printf("Brake: %s | Oil: %s | Indicators: %s | High Beam: %s\n",
+      digitalInputs.brake() ? "ON" : "OFF",
+      digitalInputs.oil() ? "ON" : "OFF",
+      digitalInputs.indicators() ? "ON" : "OFF",
+      digitalInputs.highBeam() ? "ON" : "OFF");
+    Serial.printf("Lights: %s | Fog: %s | Battery: %s\n",
+      digitalInputs.lights() ? "ON" : "OFF",
+      digitalInputs.fog() ? "ON" : "OFF",
+      digitalInputs.battery() ? "ON" : "OFF");
+    
+    // Display status
+    Serial.println("\n--- Displays ---");
+    Serial.printf("Fuel OLED: %s | Temp OLED: %s | LCD: %s\n",
+      displaysPtr->isFuelOledConnected() ? "OK" : "N/A",
+      displaysPtr->isTempOledConnected() ? "OK" : "N/A",
+      displaysPtr->isLCDConnected() ? "OK" : "N/A");
+    Serial.println("=====================\n");
+  }
 }

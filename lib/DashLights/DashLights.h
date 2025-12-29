@@ -13,14 +13,14 @@
 class DashLights {
 public:
     enum Light : uint8_t {
-        BRAKES      = 0,
-        OIL         = 1,
-        LOW_FUEL    = 2,
-        BATTERY     = 3,
-        INDICATORS  = 4,
-        HEADLIGHTS  = 5,
-        FOG_LIGHTS  = 6,
-        HIGH_BEAM   = 7
+        OIL         = 0,  // QA → D25
+        BATTERY     = 1,  // QB → D26
+        BRAKES      = 2,  // QC → D27
+        LOW_FUEL    = 3,  // QD → D28
+        INDICATORS  = 4,  // QE → D29
+        HEADLIGHTS  = 5,  // QF → D30
+        FOG_LIGHTS  = 6,  // QG → D31
+        HIGH_BEAM   = 7   // QH → D32
       };
 
     DashLights(Multiplex<1>& mux);

@@ -21,25 +21,36 @@ static const unsigned char PROGMEM image_Layer_15_bits[] = { 0x70, 0x88, 0x50 };
 Displays::Displays(
   Adafruit_SSD1306& fuelDisplay,
   Adafruit_SSD1306& tempDisplay,
-  hd44780_I2Cexp& lcdDisplay
+  LiquidCrystal_I2C* lcdDisplayPtr
 )
   : fuel(fuelDisplay),
     temp(tempDisplay),
-    lcd(lcdDisplay) {}
+    lcd(lcdDisplayPtr),
+    lcdConnected(false) {}
 
-void Displays::begin() {
-    fuel.clearDisplay();
-    fuel.display();
-
-    temp.clearDisplay();
-    temp.display();
-
-    int status = lcd.begin(16, 2);
-    if (status == 0) {
-        lcd.backlight();
-        lcd.clear();
-    } else {
-        Serial.printf("LCD init failed: %d\n", status);
+void Displays::begin(bool lcdAvailable, bool fuelOledAvailable, bool tempOledAvailable) {
+    fuelOledConnected = fuelOledAvailable;
+    tempOledConnected = tempOledAvailable;
+    lcdConnected = lcdAvailable && (lcd != nullptr);
+    
+    // Only initialize displays that are connected
+    if (fuelOledConnected) {
+        fuel.clearDisplay();
+        fuel.display();
+    }
+    
+    if (tempOledConnected) {
+        temp.clearDisplay();
+        temp.display();
+    }
+    
+    if (lcdConnected && lcd != nullptr) {
+        delay(100); // Extra delay before LCD initialization
+        lcd->init();
+        delay(100); // Give LCD time to initialize
+        lcd->backlight();
+        delay(50);
+        lcd->clear();
     }
 }
 
@@ -60,23 +71,29 @@ void Displays::drawBar(Adafruit_SSD1306& disp, uint8_t pct) {
 }
 
 void Displays::showFuel(uint8_t pct) {
+    if (!fuelOledConnected) return; // Skip if Fuel OLED not connected
     drawBar(fuel, pct);
 }
 
 void Displays::showTemp(uint8_t pct) {
+    if (!tempOledConnected) return; // Skip if Temp OLED not connected
     drawBar(temp, pct);
 }
 
 void Displays::showLCD(const char* line1) {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(line1);
+    if (!lcdConnected || lcd == nullptr) return; // Skip if LCD not connected
+    
+    lcd->clear();
+    lcd->setCursor(0, 0);
+    lcd->print(line1);
 }
 
 void Displays::showLCD(const char* line1, const char* line2) {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(line1);
-    lcd.setCursor(0, 1);
-    lcd.print(line2);
+    if (!lcdConnected || lcd == nullptr) return; // Skip if LCD not connected
+    
+    lcd->clear();
+    lcd->setCursor(0, 0);
+    lcd->print(line1);
+    lcd->setCursor(0, 1);
+    lcd->print(line2);
 }

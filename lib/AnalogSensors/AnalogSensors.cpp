@@ -30,9 +30,20 @@ void AnalogSensors::update()
   uint16_t rawTemp = analogRead(pins.temp);
   uint16_t rawFuel = analogRead(pins.fuel);
 
-  // Simple low-pass filter
-  tempFiltered = tempFiltered * 0.9f + rawTemp * 0.1f;
-  fuelFiltered = fuelFiltered * 0.9f + rawFuel * 0.1f;
+  // Validate ADC readings (clamp to reasonable range, ignore 0s from connection glitches)
+  // For 12-bit ADC, max is 4095 - validate it's not corrupted
+  if (rawTemp > config.adcMax) rawTemp = config.adcMax;
+  if (rawFuel > config.adcMax) rawFuel = config.adcMax;
+  
+  // Skip filtering if reading is 0 (connection glitch) - keep last valid value
+  // This prevents spikes when wires briefly disconnect
+  if (rawTemp > 0) {
+    tempFiltered = tempFiltered * 0.9f + rawTemp * 0.1f;
+  }
+  
+  if (rawFuel > 0) {
+    fuelFiltered = fuelFiltered * 0.9f + rawFuel * 0.1f;
+  }
 }
 
 // =================================================
@@ -92,10 +103,17 @@ uint8_t AnalogSensors::tempPercent() const
 
 uint8_t AnalogSensors::fuelPercent() const
 {
-  float vadc = (fuelFiltered / config.adcMax) * config.adcRefV;
+  // Safety check - if filtered value is invalid, return 0
+  if (fuelFiltered <= 0 || fuelFiltered > config.adcMax) {
+    return 0;
+  }
+  
+  float vadc = (fuelFiltered / (float)config.adcMax) * config.adcRefV;
 
+  // Fuel sensor is INVERTED: full = low voltage, empty = high voltage
+  // So we invert the percentage calculation
   float pct =
-      (vadc - config.fuelAdcVMin) /
+      (config.fuelAdcVMax - vadc) /
       (config.fuelAdcVMax - config.fuelAdcVMin) * 100.0f;
 
   return constrain(static_cast<int>(pct), 0, 100);
