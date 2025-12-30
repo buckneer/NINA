@@ -47,6 +47,30 @@ void Speedo::render(uint8_t channel, void* ctx) {
     auto& sr = self->multiplex.shiftRegister();
 
     sr.setAllLow();
-    sr.set(0, segmentStates[self->digits[channel]]);
-    sr.set(1, digitStates[channel]);
+    
+    // Blank leading zeros: only show digit if it's non-zero or if it's the units digit
+    // For speed 0, only show units digit (0), blank hundreds and tens
+    bool shouldDisplay = false;
+    if (channel == 2) {
+        // Always show units digit (even if 0)
+        shouldDisplay = true;
+    } else if (channel == 1) {
+        // Show tens digit if it's non-zero OR if hundreds is non-zero
+        shouldDisplay = (self->digits[1] != 0) || (self->digits[0] != 0);
+    } else if (channel == 0) {
+        // Show hundreds digit only if it's non-zero
+        shouldDisplay = (self->digits[0] != 0);
+    }
+    
+    // Only enable and set segments if we should display this digit
+    if (shouldDisplay) {
+        // Set segment pattern (table is correct per user)
+        sr.set(0, segmentStates[self->digits[channel]]);
+        // Enable this digit
+        sr.set(1, digitStates[channel]);
+    } else {
+        // Don't enable the digit at all (leave digit enable at 0)
+        // Don't set segments either (leave at 0 from setAllLow)
+        // This should blank the digit completely
+    }
 }
