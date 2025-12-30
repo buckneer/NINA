@@ -21,17 +21,17 @@ static const unsigned char PROGMEM image_Layer_15_bits[] = { 0x70, 0x88, 0x50 };
 Displays::Displays(
   Adafruit_SSD1306& fuelDisplay,
   Adafruit_SSD1306& tempDisplay,
-  LiquidCrystal_I2C* lcdDisplayPtr
+  Adafruit_SSD1306* mainOledDisplayPtr
 )
   : fuel(fuelDisplay),
     temp(tempDisplay),
-    lcd(lcdDisplayPtr),
-    lcdConnected(false) {}
+    mainOled(mainOledDisplayPtr),
+    mainOledConnected(false) {}
 
-void Displays::begin(bool lcdAvailable, bool fuelOledAvailable, bool tempOledAvailable) {
+void Displays::begin(bool mainOledAvailable, bool fuelOledAvailable, bool tempOledAvailable) {
     fuelOledConnected = fuelOledAvailable;
     tempOledConnected = tempOledAvailable;
-    lcdConnected = lcdAvailable && (lcd != nullptr);
+    mainOledConnected = mainOledAvailable && (mainOled != nullptr);
     
     // Only initialize displays that are connected
     if (fuelOledConnected) {
@@ -44,13 +44,9 @@ void Displays::begin(bool lcdAvailable, bool fuelOledAvailable, bool tempOledAva
         temp.display();
     }
     
-    if (lcdConnected && lcd != nullptr) {
-        delay(100); // Extra delay before LCD initialization
-        lcd->init();
-        delay(100); // Give LCD time to initialize
-        lcd->backlight();
-        delay(50);
-        lcd->clear();
+    if (mainOledConnected && mainOled != nullptr) {
+        mainOled->clearDisplay();
+        mainOled->display();
     }
 }
 
@@ -80,20 +76,96 @@ void Displays::showTemp(uint8_t pct) {
     drawBar(temp, pct);
 }
 
-void Displays::showLCD(const char* line1) {
-    if (!lcdConnected || lcd == nullptr) return; // Skip if LCD not connected
+void Displays::showText(const char* line1) {
+    if (!mainOledConnected || mainOled == nullptr) return;
     
-    lcd->clear();
-    lcd->setCursor(0, 0);
-    lcd->print(line1);
+    mainOled->clearDisplay();
+    mainOled->setTextSize(1);
+    mainOled->setTextColor(SSD1306_WHITE);
+    mainOled->setCursor(0, 0);
+    mainOled->println(line1);
+    mainOled->display();
 }
 
-void Displays::showLCD(const char* line1, const char* line2) {
-    if (!lcdConnected || lcd == nullptr) return; // Skip if LCD not connected
+void Displays::showText(const char* line1, const char* line2) {
+    if (!mainOledConnected || mainOled == nullptr) return;
     
-    lcd->clear();
-    lcd->setCursor(0, 0);
-    lcd->print(line1);
-    lcd->setCursor(0, 1);
-    lcd->print(line2);
+    mainOled->clearDisplay();
+    mainOled->setTextSize(1);
+    mainOled->setTextColor(SSD1306_WHITE);
+    mainOled->setCursor(0, 0);
+    mainOled->println(line1);
+    mainOled->setCursor(0, 16);
+    mainOled->println(line2);
+    mainOled->display();
+}
+
+void Displays::showText(const char* line1, const char* line2, const char* line3) {
+    if (!mainOledConnected || mainOled == nullptr) return;
+    
+    mainOled->clearDisplay();
+    mainOled->setTextSize(1);
+    mainOled->setTextColor(SSD1306_WHITE);
+    mainOled->setCursor(0, 0);
+    mainOled->println(line1);
+    mainOled->setCursor(0, 16);
+    mainOled->println(line2);
+    mainOled->setCursor(0, 32);
+    mainOled->println(line3);
+    mainOled->display();
+}
+
+void Displays::showText(const char* line1, const char* line2, const char* line3, const char* line4) {
+    if (!mainOledConnected || mainOled == nullptr) return;
+    
+    mainOled->clearDisplay();
+    mainOled->setTextSize(1);
+    mainOled->setTextColor(SSD1306_WHITE);
+    mainOled->setCursor(0, 0);
+    mainOled->println(line1);
+    mainOled->setCursor(0, 16);
+    mainOled->println(line2);
+    mainOled->setCursor(0, 32);
+    mainOled->println(line3);
+    mainOled->setCursor(0, 48);
+    mainOled->println(line4);
+    mainOled->display();
+}
+
+void Displays::showOdometer(uint32_t km) {
+    if (!mainOledConnected || mainOled == nullptr) return;
+    
+    mainOled->clearDisplay();
+    
+    // Format the number with thousand separators (e.g., "123,456")
+    char kmStr[16];
+    if (km >= 1000000) {
+        // For 1,000,000+ km, show in millions with one decimal
+        snprintf(kmStr, sizeof(kmStr), "%.1f", km / 1000000.0f);
+    } else if (km >= 1000) {
+        // For 1,000+ km, show with comma separator
+        uint32_t thousands = km / 1000;
+        uint32_t remainder = km % 1000;
+        snprintf(kmStr, sizeof(kmStr), "%lu,%03lu", thousands, remainder);
+    } else {
+        // For < 1,000 km, show plain number
+        snprintf(kmStr, sizeof(kmStr), "%lu", km);
+    }
+    
+    // Use text size 2 for good visibility (12 pixels per character width, 16 pixels height)
+    // Text size 2 is more reliable and fits better on 128x64 display
+    mainOled->setTextSize(2);
+    mainOled->setTextColor(SSD1306_WHITE);
+    
+    // Calculate text width for centering
+    // Text size 2: 12 pixels per character width
+    uint8_t numberWidth = strlen(kmStr) * 12;
+    uint8_t numberX = (128 - numberWidth) / 2;
+    
+    // Position at top of screen (y=0)
+    // Text size 2 characters are 16 pixels tall, so they fit well
+    mainOled->setCursor(numberX, 0);
+    mainOled->print(kmStr);
+    
+    mainOled->display();
 }
