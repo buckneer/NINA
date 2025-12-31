@@ -3,41 +3,48 @@
 //
 #include "RPM.h"
 
-RPMMeter::RPMMeter(Multiplex<4>& mux)
-  : multiplex(mux) {}
+RPMMeter::RPMMeter(Multiplex<4> &mux)
+    : multiplex(mux) {}
 
-void RPMMeter::begin() {
+void RPMMeter::begin()
+{
     multiplex.setRenderer(render, this);
     multiplex.start();
 }
 
-void RPMMeter::setRPM(uint16_t rpm) {
+void RPMMeter::setRPM(uint16_t rpm)
+{
     rpm = constrain(rpm, 0, 8000);
 
     uint8_t ledsToLight = map(rpm, 0, 8000, 0, TOTAL_LEDS);
 
-    for (uint8_t i = 0; i < TOTAL_LEDS; i++) {
+    for (uint8_t i = 0; i < TOTAL_LEDS; i++)
+    {
         ledStates[i] = (i < ledsToLight);
     }
 }
 
-void RPMMeter::render(uint8_t channel, void* ctx) {
-    auto* self = static_cast<RPMMeter*>(ctx);
-    auto& sr = self->multiplex.shiftRegister();
+void RPMMeter::render(uint8_t /*channel*/, void *ctx, uint8_t *regs)
+{
+    auto *self = static_cast<RPMMeter *>(ctx);
 
-    if (channel >= CHANNELS) return;
+    uint8_t ledIndex = 0;
 
-    // Clear previous frame
-    sr.setAllLow();
+    // Rebuild the ENTIRE shift register chain every tick
+    for (uint8_t reg = 0; reg < CHANNELS; reg++)
+    {
+        uint8_t value = 0;
+        uint8_t bits = (reg == CHANNELS - 1) ? 5 : 8; // last register partial
 
-    // Each channel corresponds to one shift register (8 LEDs)
-    uint8_t baseIndex = channel * 8;
-
-    for (uint8_t bit = 0; bit < 8; bit++) {
-        uint8_t ledIndex = baseIndex + bit;
-
-        if (ledIndex < TOTAL_LEDS) {
-            sr.set(channel * 8 + bit, self->ledStates[ledIndex]);
+        for (uint8_t bit = 0; bit < bits; bit++)
+        {
+            if (ledIndex < TOTAL_LEDS && self->ledStates[ledIndex])
+            {
+                value |= (1 << bit); // LSB-first, matches old sr.set()
+            }
+            ledIndex++;
         }
+
+        regs[reg] = value;
     }
 }

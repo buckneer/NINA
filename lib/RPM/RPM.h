@@ -8,20 +8,24 @@
 #include <Arduino.h>
 #include <Multiplex.h>
 
-class RPMMeter {
+class RPMMeter
+{
+
 public:
     static constexpr uint8_t TOTAL_LEDS = 29;
-    static constexpr uint8_t CHANNELS   = 4;
+    static constexpr uint8_t CHANNELS = 4;
 
-    RPMMeter(Multiplex<4>& mux);
+    inline static constexpr uint8_t LEDS_PER_REG[CHANNELS] = {8, 8, 8, 5};
+
+    RPMMeter(Multiplex<4> &mux);
 
     void begin();
     void setRPM(uint16_t rpm);
 
 private:
-    static void render(uint8_t channel, void* ctx);
+    static void render(uint8_t channel, void *ctx, uint8_t *regs);
 
     bool ledStates[TOTAL_LEDS] = {false};
-    Multiplex<4>& multiplex;
+    Multiplex<4> &multiplex;
 };
-#endif //NINA_RPM_H
+#endif // NINA_RPM_H
