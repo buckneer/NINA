@@ -525,8 +525,8 @@ void loop()
   rpmInput.update();
 
   // --- Outputs
-  rpm.setRPM(rpmInput.rpm());
-  // rpm.setRPM(8000);
+  // rpm.setRPM(rpmInput.rpm());
+  rpm.setRPM(8000);
 
   // TODO: real speed calculation later
   speedo.setSpeed(100);
