@@ -31,8 +31,8 @@ public:
     void showText(const char* line1, const char* line2, const char* line3);
     void showText(const char* line1, const char* line2, const char* line3, const char* line4);
 
-    // Odometer display - large, visible number (supports up to 1,000,000 km)
-    void showOdometer(uint32_t km);
+    // Main display - shows time, date, trip, and odometer
+    void showOdometer(uint32_t km, uint32_t tripKm = 0);
 
     bool isMainOledConnected() const { return mainOledConnected; }
     bool isFuelOledConnected() const { return fuelOledConnected; }

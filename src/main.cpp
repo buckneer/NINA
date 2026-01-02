@@ -128,10 +128,11 @@ RPMInput rpmInput(PIN_RPM, RPM_SAMPLE_MS, RPM_PULSES_PER_REV);
 SpeedInput speedInput(PIN_HALL, SPEEDO_METERS_PER_PULSE);
 
 // =====================
-// Odometer
+// Odometer & Trip
 // =====================
 // TODO: Store odometer in EEPROM/Flash to persist across power cycles
 uint32_t odometerMeters = 0; // Total meters traveled (for precision)
+uint32_t tripMeters = 0; // Trip distance in meters
 unsigned long lastOdometerUpdate = 0;
 
 // =====================
@@ -365,7 +366,7 @@ void setup()
 
   if (mainOledConnected)
   {
-    displaysPtr->showOdometer(odometerMeters / 1000); // Convert meters to km
+    displaysPtr->showOdometer(odometerMeters / 1000, tripMeters / 1000); // Convert meters to km
   }
   
   Serial.println("Hardware setup complete");
@@ -580,7 +581,7 @@ void loop()
   if (now - lastOdometerDisplay >= 500)
   { // Update odometer display every 500ms (2Hz)
     lastOdometerDisplay = now;
-    displaysPtr->showOdometer(odometerMeters / 1000);
+    displaysPtr->showOdometer(odometerMeters / 1000, tripMeters / 1000);
   }
 
   // --- Logger (print state every second)

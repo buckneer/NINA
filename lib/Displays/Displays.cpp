@@ -132,39 +132,57 @@ void Displays::showText(const char* line1, const char* line2, const char* line3,
     mainOled->display();
 }
 
-void Displays::showOdometer(uint32_t km) {
+void Displays::showOdometer(uint32_t km, uint32_t tripKm) {
     if (!mainOledConnected || mainOled == nullptr) return;
     
     mainOled->clearDisplay();
     
-    // Format the number with thousand separators (e.g., "123,456")
+    // Set text color and wrap
+    mainOled->setTextColor(SSD1306_WHITE);
+    mainOled->setTextWrap(false);
+    
+    // Time display (large, text size 2) at (35, 5)
+    mainOled->setTextSize(2);
+    mainOled->setCursor(35, 5);
+    mainOled->print("22:25");  // Hardcoded for now
+    
+    // Date display (text size 1) at (34, 24)
+    mainOled->setTextSize(1);
+    mainOled->setCursor(34, 24);
+    mainOled->print("01.01.2026.");  // Hardcoded for now
+    
+    // Trip label and value at (3, 44) and (60, 44)
+    mainOled->setCursor(3, 44);
+    mainOled->print("Trip: ");
+    
+    // Format trip value
+    char tripStr[16];
+    if (tripKm >= 1000) {
+        uint32_t thousands = tripKm / 1000;
+        uint32_t remainder = tripKm % 1000;
+        snprintf(tripStr, sizeof(tripStr), "%lu,%03lu", thousands, remainder);
+    } else {
+        snprintf(tripStr, sizeof(tripStr), "%lu", tripKm);
+    }
+    mainOled->setCursor(60, 44);
+    mainOled->print(tripStr);
+    
+    // Horizontal line at y=53 from x=0 to x=128
+    mainOled->drawLine(0, 53, 128, 53, SSD1306_WHITE);
+    
+    // Odometer value at (60, 55) - below the line
+    // Format odometer value
     char kmStr[16];
     if (km >= 1000000) {
-        // For 1,000,000+ km, show in millions with one decimal
         snprintf(kmStr, sizeof(kmStr), "%.1f", km / 1000000.0f);
     } else if (km >= 1000) {
-        // For 1,000+ km, show with comma separator
         uint32_t thousands = km / 1000;
         uint32_t remainder = km % 1000;
         snprintf(kmStr, sizeof(kmStr), "%lu,%03lu", thousands, remainder);
     } else {
-        // For < 1,000 km, show plain number
         snprintf(kmStr, sizeof(kmStr), "%lu", km);
     }
-    
-    // Use text size 2 for good visibility (12 pixels per character width, 16 pixels height)
-    // Text size 2 is more reliable and fits better on 128x64 display
-    mainOled->setTextSize(2);
-    mainOled->setTextColor(SSD1306_WHITE);
-    
-    // Calculate text width for centering
-    // Text size 2: 12 pixels per character width
-    uint8_t numberWidth = strlen(kmStr) * 12;
-    uint8_t numberX = (128 - numberWidth) / 2;
-    
-    // Position at top of screen (y=0)
-    // Text size 2 characters are 16 pixels tall, so they fit well
-    mainOled->setCursor(numberX, 0);
+    mainOled->setCursor(60, 55);
     mainOled->print(kmStr);
     
     mainOled->display();
