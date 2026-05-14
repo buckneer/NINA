@@ -64,7 +64,7 @@ buttons, speed, and battery data.
 
 ### Packet Format (ESP32 reads from 0x42)
 
-ESP32 requests **5 bytes** from the RP2040:
+ESP32 requests **7 bytes** from the RP2040:
 
 ```
 Byte 0 : Buttons bitmask (uint8_t)
@@ -79,14 +79,23 @@ Byte 3 : speed_hi  (uint8_t, MSB of uint16_t LE)
            Speed = (Byte2 | Byte3<<8) / 10.0  [km/h, 0.1 km/h resolution]
            Source: hall effect sensor on GPIO14
 
-Byte 4 : XOR checksum = Byte0 ^ Byte1 ^ Byte2 ^ Byte3
+Byte 4 : NEXT hold duration (uint8_t, 10 ms units, 0 = not held, max = 2550 ms)
+Byte 5 : OK   hold duration (uint8_t, 10 ms units, 0 = not held, max = 2550 ms)
+           Used by ESP32 to derive long-press events and accelerating repeat ticks.
+
+Byte 6 : XOR checksum = Byte0 ^ Byte1 ^ Byte2 ^ Byte3 ^ Byte4 ^ Byte5
 ```
 
 **Validation (ESP32 side):**
 - `(byte0 ^ byte1) == 0xFF` — buttons integrity
-- `byte0 ^ byte1 ^ byte2 ^ byte3 ^ byte4 == 0` — full packet XOR
+- `byte0 ^ byte1 ^ byte2 ^ byte3 ^ byte4 ^ byte5 ^ byte6 == 0` — full packet XOR
 
 If either check fails the packet is discarded and the ESP32 retries on the next poll.
+
+**Button features derived on ESP32 (`PicoLink`):**
+- `nextPressed()` / `okPressed()` — short press, edge-consuming
+- `nextLongPressed(ms)` / `okLongPressed(ms)` — fires once when hold crosses threshold (default 800 ms)
+- `nextAccelTick(startMs, slowMs, fastMs)` / `okAccelTick(...)` — fires at an accelerating rate while held (starts at `slowMs` interval, ramps to `fastMs` over 2 s)
 
 ## Future Enhancements
 

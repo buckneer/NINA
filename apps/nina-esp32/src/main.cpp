@@ -10,6 +10,7 @@
 #include <RPMInput.h>
 #include <PicoLink.h>
 #include <Odometer.h>
+#include <I2CScanner.h>
 
 TwoWire I2C_FUEL(1);
 
@@ -54,6 +55,9 @@ void setup() {
     delay(50);
     I2C_FUEL.begin(FUEL_SDA, FUEL_SCL, 100000);
     delay(50);
+
+    I2CScanner::scan(Wire,     "bus0 (Wire)");
+    I2CScanner::scan(I2C_FUEL, "bus1 (I2C_FUEL)");
 
     pico.begin(Wire, I2C_FUEL);
     dashboard.begin(Wire, I2C_FUEL);

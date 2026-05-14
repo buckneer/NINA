@@ -33,7 +33,7 @@ void loop() {
     if (btnNext.pressed()) buttons |= (1u << 0);
     if (btnOk.pressed())   buttons |= (1u << 1);
 
-    comms.send(buttons, hall.speedKph());
+    comms.send(buttons, hall.speedKph(), btnNext.holdMs(), btnOk.holdMs());
 
     static uint32_t lastLog = 0;
     if (now - lastLog >= 500) {
