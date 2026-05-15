@@ -29,11 +29,11 @@ void ButtonInput::update() {
         if (_stable) {
             _pressedSince = now;
             _longFired    = false;
-            if (_name) printf("[BTN] %s PRESSED\n", _name);
+            if (_name) { char b[48]; snprintf(b, sizeof(b), "[BTN] %s PRESSED\n",  _name); Serial.print(b); }
         } else {
             _pressedSince = 0;
             _longFired    = false;
-            if (_name) printf("[BTN] %s released\n", _name);
+            if (_name) { char b[48]; snprintf(b, sizeof(b), "[BTN] %s released\n", _name); Serial.print(b); }
         }
     }
 }
@@ -49,7 +49,7 @@ bool ButtonInput::heldFor(uint32_t ms) const {
 bool ButtonInput::longPressed(uint32_t ms) {
     if (!_longFired && heldFor(ms)) {
         _longFired = true;
-        if (_name) printf("[BTN] %s LONG PRESS\n", _name);
+        if (_name) { char b[48]; snprintf(b, sizeof(b), "[BTN] %s LONG PRESS\n", _name); Serial.print(b); }
         return true;
     }
     return false;

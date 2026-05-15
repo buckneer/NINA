@@ -11,7 +11,8 @@ PicoComms   comms  (I2C_SLAVE_ADDR, I2C_FREQ_HZ);
 
 void setup() {
     Serial.begin(SERIAL_BAUD);
-    delay(200);
+    // Wait up to 3 s for USB serial to enumerate; continues regardless.
+    for (uint32_t t = millis(); !Serial && millis() - t < 3000;) delay(10);
 
     btnNext.begin();
     btnOk.begin();
@@ -38,7 +39,8 @@ void loop() {
     static uint32_t lastLog = 0;
     if (now - lastLog >= 500) {
         lastLog = now;
-        printf("[TELEM] speed=%.1f km/h  btn=0x%02X\n", hall.speedKph(), buttons);
+        Serial.print("speed: ");   Serial.print(hall.speedKph()); Serial.println(" km/h");
+        Serial.print("pulses: ");  Serial.println(hall.pulseCount());
     }
 
     delay(1);

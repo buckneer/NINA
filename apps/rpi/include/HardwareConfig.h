@@ -18,7 +18,7 @@ constexpr uint8_t  PIN_HALL               = 14;
 constexpr float    METERS_PER_MILE        = 1609.344f;
 constexpr uint32_t HALL_PULSES_PER_MILE   = 1600; // 1600 rotations × 1 pulse (RISING edge per magnet pass)
 constexpr float    SPEEDO_METERS_PER_PULSE = METERS_PER_MILE / HALL_PULSES_PER_MILE;
-constexpr uint16_t SPEEDO_SAMPLE_MS        = 200;
+constexpr uint16_t SPEEDO_SAMPLE_MS        = 500;
 
 // I2C slave (Mbed core defaults: GP4=SDA, GP5=SCL)
 constexpr uint8_t  PIN_I2C_SDA    = 4;

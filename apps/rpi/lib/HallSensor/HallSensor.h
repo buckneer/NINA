@@ -10,9 +10,10 @@ class HallSensor {
 public:
     HallSensor(uint8_t pin, float metersPerPulse, uint16_t sampleMs = 200);
 
-    void  begin();
-    void  update();
-    float speedKph() const { return _speedKph; }
+    void     begin();
+    void     update();
+    float    speedKph()   const { return roundf(_speedKph / 5.0f) * 5.0f; }
+    uint32_t pulseCount() const { return _pulseCount; }
 
     static void isr();
 

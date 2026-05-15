@@ -27,7 +27,21 @@ void HallSensor::update() {
 
     const uint32_t pulses = _pulseCount - _lastSnap;
     const float    dtSec  = (now - _lastMs) / 1000.0f;
-    _speedKph  = (pulses * _metersPerPulse / dtSec) * 3.6f;
-    _lastSnap  = _pulseCount;
-    _lastMs    = now;
+    _lastSnap = _pulseCount;
+    _lastMs   = now;
+
+    if (pulses == 0) {
+        _speedKph = 0.0f;
+        return;
+    }
+
+    const float raw = (pulses * _metersPerPulse / dtSec) * 3.6f;
+
+    // Reject implausible jump from standstill to near-max — catches 50 Hz
+    // sensor threshold oscillation which reads as ~181 km/h.
+    if (_speedKph < 5.0f && raw > 160.0f) return;
+
+    // Asymmetric EMA: slow to rise (filters noise), fast to fall (real decel).
+    const float alpha = (raw < _speedKph) ? 0.5f : 0.2f;
+    _speedKph = alpha * raw + (1.0f - alpha) * _speedKph;
 }
