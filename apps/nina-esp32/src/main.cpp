@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <esp_sleep.h>
 #include "HardwareConfig.h"
 #include <Multiplex.h>
 #include <Speedo.h>
@@ -17,6 +18,13 @@
 #include <ClockWidget.h>
 #include <MenuScreen.h>
 #include <ClockSetScreen.h>
+
+static void enterDeepSleep() {
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_33, 0); // wake on LOW (IGN on)
+    Serial.println("[Power] IGN off — entering deep sleep");
+    Serial.flush();
+    esp_deep_sleep_start();
+}
 
 TwoWire I2C_FUEL(1);
 
@@ -64,6 +72,11 @@ ClockSetScreen clockSet;
 // ─────────────────────────────────────────────────────────────────────────────
 
 void setup() {
+    pinMode(PIN_IGN_SLEEP, INPUT); // hardware pull-up via R3 — no INPUT_PULLUP needed
+    if (digitalRead(PIN_IGN_SLEEP) == HIGH) {
+        enterDeepSleep();
+    }
+
     Serial.begin(115200);
     delay(500);
 
@@ -98,6 +111,10 @@ void loop() {
 
     analogs.update();
     digitalInputs.update();
+
+    if (!digitalInputs.battery()) {
+        enterDeepSleep();
+    }
     rpmInput.update();
     odometer.update(pico.speedKph());
 

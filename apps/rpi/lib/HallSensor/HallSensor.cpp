@@ -3,7 +3,12 @@
 HallSensor* HallSensor::_instance = nullptr;
 
 void HallSensor::isr() {
-    if (_instance) _instance->_pulseCount++;
+    if (!_instance) return;
+    const uint32_t now = micros();
+    if (now - _instance->_lastPulseUs >= HALL_DEBOUNCE_US) {
+        _instance->_pulseCount++;
+        _instance->_lastPulseUs = now;
+    }
 }
 
 HallSensor::HallSensor(uint8_t pin, float metersPerPulse, uint16_t sampleMs)
@@ -12,8 +17,8 @@ HallSensor::HallSensor(uint8_t pin, float metersPerPulse, uint16_t sampleMs)
 void HallSensor::begin() {
     _instance = this;
     _lastMs   = millis();
-    pinMode(_pin, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(_pin), HallSensor::isr, FALLING);
+    pinMode(_pin, INPUT_PULLDOWN);
+    attachInterrupt(digitalPinToInterrupt(_pin), HallSensor::isr, RISING);
 }
 
 void HallSensor::update() {

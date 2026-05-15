@@ -2,6 +2,7 @@
 #include <Adafruit_SSD1306.h>
 #include <PicoLink.h>
 #include <MenuScreen.h>
+#include "YugoLogo.h"
 
 // ─── setup ───────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,10 @@ void UIManager::begin(TwoWire& bus, PicoLink& pico, Screen& defaultScreen) {
         return;
     }
 
+    _oled->clearDisplay();
+    _oled->drawBitmap(32, 0, yugo_logo_white, 128, 64, WHITE);
+    _oled->display();
+    delay(2000);
     _oled->clearDisplay();
     _oled->display();
 

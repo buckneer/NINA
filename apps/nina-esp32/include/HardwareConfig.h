@@ -25,7 +25,8 @@ constexpr uint8_t PIN_INDICATORS = 27;
 constexpr uint8_t PIN_HIGH_BEAM = 14;
 constexpr uint8_t PIN_LIGHTS = 12; // ⚠ boot strap pin
 constexpr uint8_t PIN_FOG = 13;
-constexpr uint8_t PIN_BATTERY = 33; // Alternator D+
+constexpr uint8_t PIN_BATTERY   = 33; // 4N35 IGN optocoupler output (active-low: LOW = IGN on, HIGH = IGN off)
+constexpr uint8_t PIN_IGN_SLEEP = PIN_BATTERY; // alias used by sleep/wake logic
 
 // Optional / future
 constexpr uint8_t PIN_HALL = 39;
