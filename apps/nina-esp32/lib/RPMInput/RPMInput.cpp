@@ -1,38 +1,107 @@
-//
-// Created by Miftari Simel on 27. 12. 2025..
-//
-
 #include "RPMInput.h"
 
-volatile uint32_t RPMInput::pulseCount = 0;
+volatile uint32_t RPMInput::lastPulseUs = 0;
+volatile uint32_t RPMInput::periodSumUs = 0;
+volatile uint16_t RPMInput::periodCount = 0;
 
-void IRAM_ATTR RPMInput::isr() {
-    pulseCount++;
+RPMInput::RPMInput(uint8_t p, uint8_t ppr)
+    : pin(p),
+      pulsesPerRev(ppr)
+{
 }
 
-RPMInput::RPMInput(uint8_t p, uint16_t sm, uint8_t ppr)
-  : pin(p), sampleMs(sm), pulsesPerRev(ppr) {}
+void IRAM_ATTR RPMInput::isr()
+{
+    const uint32_t now = micros();
 
-void RPMInput::begin() {
-    pinMode(pin, INPUT_PULLUP);
-    attachInterrupt(pin, isr, FALLING);
-    lastSampleMs = millis();
-}
-
-void RPMInput::update() {
-    uint32_t now = millis();
-    if (now - lastSampleMs >= sampleMs) {
-        uint32_t pulses = pulseCount;
-        pulseCount = 0;
-
-        float revs = static_cast<float>(pulses) / pulsesPerRev;
-        float minutes = (sampleMs / 1000.0f) / 60.0f;
-
-        currentRPM = static_cast<uint16_t>(revs / minutes);
-        lastSampleMs = now;
+    // First pulse: just establish a reference.
+    if (lastPulseUs == 0)
+    {
+        lastPulseUs = now;
+        return;
     }
+
+    const uint32_t period = now - lastPulseUs;
+
+    // Reject ignition ringing/noise.
+    if (period < MIN_PULSE_US)
+    {
+        return;
+    }
+
+    // Engine was stopped / signal disappeared.
+    // Treat this as the first pulse of a new run.
+    if (period > TIMEOUT_US)
+    {
+        lastPulseUs = now;
+        return;
+    }
+
+    lastPulseUs = now;
+
+    periodSumUs += period;
+    periodCount++;
 }
 
-uint16_t RPMInput::rpm() const {
+void RPMInput::begin()
+{
+    pinMode(pin, INPUT_PULLUP);
+
+    lastPulseUs = 0;
+    periodSumUs = 0;
+    periodCount = 0;
+    currentRPM = 0;
+
+    attachInterrupt(
+        digitalPinToInterrupt(pin),
+        isr,
+        FALLING);
+}
+
+void RPMInput::update()
+{
+    uint32_t sum;
+    uint16_t count;
+    uint32_t lastPulse;
+
+    noInterrupts();
+
+    sum = periodSumUs;
+    count = periodCount;
+    lastPulse = lastPulseUs;
+
+    periodSumUs = 0;
+    periodCount = 0;
+
+    interrupts();
+
+    const uint32_t now = micros();
+
+    // Engine stopped / signal disappeared.
+    if (lastPulse == 0 || (now - lastPulse) > TIMEOUT_US)
+    {
+        currentRPM = 0;
+        return;
+    }
+
+    // Nothing new to calculate yet.
+    if (count == 0)
+    {
+        return;
+    }
+
+    const float averagePeriodUs =
+        static_cast<float>(sum) /
+        static_cast<float>(count);
+
+    const float calculatedRPM =
+        60000000.0f /
+        (averagePeriodUs * pulsesPerRev);
+
+    currentRPM = static_cast<uint16_t>(calculatedRPM + 0.5f);
+}
+
+uint16_t RPMInput::rpm() const
+{
     return currentRPM;
 }

@@ -84,11 +84,11 @@ constexpr uint8_t LOW_FUEL_THRESHOLD = 20; // %
 // ===== RPM CALCULATION
 // =================================================
 
-// pulses per engine revolution (adjust to ignition type)
+// RPM input
 constexpr uint8_t RPM_PULSES_PER_REV = 2;
-
-// measurement window (ms)
-constexpr uint16_t RPM_SAMPLE_MS = 200;
+constexpr uint32_t RPM_MIN_PULSE_US = 2000;
+constexpr uint32_t RPM_TIMEOUT_MS = 500;
+constexpr uint16_t RPM_MAX = 7250;
 
 // =================================================
 // ===== ADC SETTINGS

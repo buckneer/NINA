@@ -2,6 +2,7 @@
 // Created by Miftari Simel on 27. 12. 2025..
 //
 #include "RPM.h"
+#include "HardwareConfig.h"
 
 RPMMeter::RPMMeter(Multiplex<4> &mux)
     : multiplex(mux) {}
@@ -14,9 +15,14 @@ void RPMMeter::begin()
 
 void RPMMeter::setRPM(uint16_t rpm)
 {
-    rpm = constrain(rpm, 0, 8000);
+    rpm = constrain(rpm, 0, RPM_MAX);
 
-    uint8_t ledsToLight = map(rpm, 0, 8000, 0, TOTAL_LEDS);
+    uint8_t ledsToLight = map(
+        rpm,
+        0,
+        RPM_MAX,
+        0,
+        TOTAL_LEDS);
 
     for (uint8_t i = 0; i < TOTAL_LEDS; i++)
     {

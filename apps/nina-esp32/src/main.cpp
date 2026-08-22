@@ -70,7 +70,9 @@ DigitalInputs::Pins digitalPins{
 };
 DigitalInputs digitalInputs(digitalPins);
 
-RPMInput rpmInput(PIN_RPM, RPM_SAMPLE_MS, RPM_PULSES_PER_REV);
+RPMInput rpmInput(
+    PIN_RPM,
+    RPM_PULSES_PER_REV);
 PicoLink pico;
 Odometer odometer;
 
