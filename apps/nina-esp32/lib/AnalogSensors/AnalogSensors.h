@@ -1,35 +1,33 @@
-//
-// Created by Miftari Simel on 27. 12. 2025..
-//
-
 #ifndef NINA_ANALOGSENSORS_H
 #define NINA_ANALOGSENSORS_H
 
 #pragma once
 #include <Arduino.h>
 
-struct TempVPoint
+struct TempRPoint
 {
-    float vadc; // volts at ESP32 ADC pin (AFTER divider)
-    int tempC;  // °C
+    float resistance;
+    int tempC;
 };
 
 struct AnalogSensorsConfig
 {
-    // ADC settings
     uint8_t adcBits;
-    float adcRefV;
     uint16_t adcMax;
 
-    // Temperature calibration
-    const TempVPoint* tempVTable;
-    size_t tempVTableSize;
+    float senderSupplyV;
+
+    float tempPullupOhms;
+    float fuelPullupOhms;
+
+    const TempRPoint *tempRTable;
+    size_t tempRTableSize;
+
     int tempMinC;
     int tempMaxC;
 
-    // Fuel calibration
-    float fuelAdcVMin; // empty
-    float fuelAdcVMax; // full
+    float fuelEmptyOhms;
+    float fuelFullOhms;
 };
 
 class AnalogSensors
@@ -37,8 +35,8 @@ class AnalogSensors
 public:
     struct Pins
     {
-        uint8_t temp; // ADC pin for engine temp
-        uint8_t fuel; // ADC pin for fuel sender
+        uint8_t temp;
+        uint8_t fuel;
     };
 
     AnalogSensors(const Pins &pins, const AnalogSensorsConfig &config);
@@ -46,12 +44,13 @@ public:
     void begin();
     void update();
 
-    // Engine temperature
-    int16_t tempC() const;       // real temperature
-    uint8_t tempPercent() const; // mapped for display
+    int16_t tempC() const;
+    uint8_t tempPercent() const;
 
-    // Fuel
     uint8_t fuelPercent() const;
+
+    float tempResistanceOhms() const;
+    float fuelResistanceOhms() const;
 
 private:
     Pins pins;
@@ -60,6 +59,10 @@ private:
     float tempFiltered = 0.0f;
     float fuelFiltered = 0.0f;
 
-    int interpolateTempFromVoltage(float voltage) const;
+    bool filterInitialized = false;
+
+    float adcToResistance(float adc, float pullupOhms) const;
+    int interpolateTempFromResistance(float resistance) const;
 };
-#endif // NINA_ANALOGSENSORS_H
+
+#endif

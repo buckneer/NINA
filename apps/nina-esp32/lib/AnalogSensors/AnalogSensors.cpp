@@ -1,120 +1,167 @@
 #include "AnalogSensors.h"
 #include <math.h>
 
-// -------------------------------------------------
-// Constructor
-// -------------------------------------------------
-
 AnalogSensors::AnalogSensors(const Pins &p, const AnalogSensorsConfig &c)
     : pins(p), config(c) {}
-
-// -------------------------------------------------
-// Init
-// -------------------------------------------------
 
 void AnalogSensors::begin()
 {
   analogReadResolution(config.adcBits);
 
-  // Make ADC range truthful (0–3.3V)
   analogSetPinAttenuation(pins.temp, ADC_11db);
   analogSetPinAttenuation(pins.fuel, ADC_11db);
 }
-
-// -------------------------------------------------
-// Update (call every loop)
-// -------------------------------------------------
 
 void AnalogSensors::update()
 {
   uint16_t rawTemp = analogRead(pins.temp);
   uint16_t rawFuel = analogRead(pins.fuel);
 
-  // Validate ADC readings (clamp to reasonable range, ignore 0s from connection glitches)
-  // For 12-bit ADC, max is 4095 - validate it's not corrupted
-  if (rawTemp > config.adcMax) rawTemp = config.adcMax;
-  if (rawFuel > config.adcMax) rawFuel = config.adcMax;
-  
-  // Skip filtering if reading is 0 (connection glitch) - keep last valid value
-  // This prevents spikes when wires briefly disconnect
-  if (rawTemp > 0) {
-    tempFiltered = tempFiltered * 0.9f + rawTemp * 0.1f;
+  rawTemp = min(rawTemp, config.adcMax);
+  rawFuel = min(rawFuel, config.adcMax);
+
+  if (!filterInitialized)
+  {
+    tempFiltered = rawTemp;
+    fuelFiltered = rawFuel;
+    filterInitialized = true;
+    return;
   }
-  
-  if (rawFuel > 0) {
-    fuelFiltered = fuelFiltered * 0.9f + rawFuel * 0.1f;
-  }
+
+  tempFiltered = tempFiltered * 0.9f + rawTemp * 0.1f;
+  fuelFiltered = fuelFiltered * 0.9f + rawFuel * 0.1f;
 }
 
-// =================================================
-// ============ TEMPERATURE (OEM YUGO, ADC LUT)
-// =================================================
-
-// Linear interpolation in ADC-voltage domain
-int AnalogSensors::interpolateTempFromVoltage(float v) const
+float AnalogSensors::adcToResistance(float adc, float pullupOhms) const
 {
-  for (size_t i = 0; i < config.tempVTableSize - 1; i++)
+  // Sender is a resistor to ground with a 3.3 V pull-up.
+  if (adc >= config.adcMax - 1)
+    return INFINITY;
+
+  if (adc <= 0.0f)
+    return 0.0f;
+
+  float ratio = adc / static_cast<float>(config.adcMax);
+
+  return pullupOhms * ratio / (1.0f - ratio);
+}
+
+float AnalogSensors::tempResistanceOhms() const
+{
+  return adcToResistance(
+      tempFiltered,
+      config.tempPullupOhms);
+}
+
+float AnalogSensors::fuelResistanceOhms() const
+{
+  return adcToResistance(
+      fuelFiltered,
+      config.fuelPullupOhms);
+}
+
+int AnalogSensors::interpolateTempFromResistance(float r) const
+{
+  if (!isfinite(r))
+    return config.tempMinC;
+
+  for (size_t i = 0; i < config.tempRTableSize - 1; i++)
   {
-    const auto &p1 = config.tempVTable[i];
-    const auto &p2 = config.tempVTable[i + 1];
+    const auto &p1 = config.tempRTable[i];
+    const auto &p2 = config.tempRTable[i + 1];
 
-    if (v >= p1.vadc && v <= p2.vadc)
-    {
-      float t =
-          p1.tempC +
-          (p2.tempC - p1.tempC) *
-              (v - p1.vadc) /
-              (p2.vadc - p1.vadc);
+    bool between =
+        (r >= p1.resistance && r <= p2.resistance) ||
+        (r <= p1.resistance && r >= p2.resistance);
 
-      return static_cast<int>(t);
-    }
+    if (!between)
+      continue;
+
+    float t =
+        p1.tempC +
+        (p2.tempC - p1.tempC) *
+            (r - p1.resistance) /
+            (p2.resistance - p1.resistance);
+
+    return static_cast<int>(t);
   }
 
-  // Out-of-range safety
-  if (v < config.tempVTable[0].vadc)
-    return config.tempVTable[0].tempC;
+  float firstDistance =
+      fabsf(r - config.tempRTable[0].resistance);
 
-  return config.tempVTable[config.tempVTableSize - 1].tempC;
+  float lastDistance =
+      fabsf(r - config.tempRTable[config.tempRTableSize - 1].resistance);
+
+  if (firstDistance < lastDistance)
+    return config.tempRTable[0].tempC;
+
+  return config.tempRTable[config.tempRTableSize - 1].tempC;
 }
 
 int16_t AnalogSensors::tempC() const
 {
-  float vadc = (tempFiltered / config.adcMax) * config.adcRefV;
+  // Use real resistance table once calibrated
+  if (config.tempRTable != nullptr && config.tempRTableSize >= 2)
+  {
+    int t = interpolateTempFromResistance(tempResistanceOhms());
+    return constrain(t, config.tempMinC, config.tempMaxC);
+  }
 
-  int t = interpolateTempFromVoltage(vadc);
+  // Temporary fallback: low ADC = hotter sender
+  float ratio = tempFiltered / static_cast<float>(config.adcMax);
+
+  int t =
+      config.tempMaxC -
+      static_cast<int>(
+          ratio * (config.tempMaxC - config.tempMinC));
+
   return constrain(t, config.tempMinC, config.tempMaxC);
 }
 
-// Map temperature to 0–100% (for bar display)
 uint8_t AnalogSensors::tempPercent() const
 {
   int t = tempC();
 
   float pct =
-      (float)(t - config.tempMinC) /
-      (config.tempMaxC - config.tempMinC) * 100.0f;
+      static_cast<float>(t - config.tempMinC) /
+      static_cast<float>(config.tempMaxC - config.tempMinC) *
+      100.0f;
 
-  return constrain(static_cast<int>(pct), 0, 100);
+  return constrain(
+      static_cast<int>(pct),
+      0,
+      100);
 }
-
-// =================================================
-// ================= FUEL SENDER
-// =================================================
 
 uint8_t AnalogSensors::fuelPercent() const
 {
-  // Safety check - if filtered value is invalid, return 0
-  if (fuelFiltered <= 0 || fuelFiltered > config.adcMax) {
-    return 0;
+  float r = fuelResistanceOhms();
+
+  // Use real calibration once available
+  if (config.fuelFullOhms != config.fuelEmptyOhms)
+  {
+    if (!isfinite(r))
+      return 0;
+
+    float pct =
+        (r - config.fuelEmptyOhms) /
+        (config.fuelFullOhms - config.fuelEmptyOhms) *
+        100.0f;
+
+    return constrain(
+        static_cast<int>(pct),
+        0,
+        100);
   }
-  
-  float vadc = (fuelFiltered / (float)config.adcMax) * config.adcRefV;
 
-  // Fuel sensor is INVERTED: full = low voltage, empty = high voltage
-  // So we invert the percentage calculation
-  float pct =
-      (config.fuelAdcVMax - vadc) /
-      (config.fuelAdcVMax - config.fuelAdcVMin) * 100.0f;
+  // Temporary fallback: low ADC = fuller tank
+  float ratio =
+      fuelFiltered / static_cast<float>(config.adcMax);
 
-  return constrain(static_cast<int>(pct), 0, 100);
+  float pct = (1.0f - ratio) * 100.0f;
+
+  return constrain(
+      static_cast<int>(pct),
+      0,
+      100);
 }

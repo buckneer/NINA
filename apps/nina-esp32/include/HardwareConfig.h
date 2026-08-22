@@ -1,6 +1,6 @@
 #pragma once
 #include <Arduino.h>
-#include <AnalogSensors.h> // For TempVPoint definition
+#include <AnalogSensors.h>
 
 // ─────────────────────────────────────────────
 // NINABrain – Hardware Configuration
@@ -25,7 +25,7 @@ constexpr uint8_t PIN_INDICATORS = 27;
 constexpr uint8_t PIN_HIGH_BEAM = 14;
 constexpr uint8_t PIN_LIGHTS = 12; // ⚠ boot strap pin
 constexpr uint8_t PIN_FOG = 13;
-constexpr uint8_t PIN_BATTERY   = 33; // 4N35 IGN optocoupler output (active-low: LOW = IGN on, HIGH = IGN off)
+constexpr uint8_t PIN_BATTERY = 33;			   // 4N35 IGN optocoupler output (active-low: LOW = IGN on, HIGH = IGN off)
 constexpr uint8_t PIN_IGN_SLEEP = PIN_BATTERY; // alias used by sleep/wake logic
 
 // Optional / future
@@ -79,8 +79,6 @@ constexpr uint32_t DASH_MUX_MS = 2; // warning lights
 // =================================================
 
 constexpr uint8_t LOW_FUEL_THRESHOLD = 20; // %
-constexpr float FUEL_ADC_V_MIN = 0.40f;	   // empty
-constexpr float FUEL_ADC_V_MAX = 1.80f;	   // full
 
 // =================================================
 // ===== RPM CALCULATION
@@ -97,40 +95,20 @@ constexpr uint16_t RPM_SAMPLE_MS = 200;
 // =================================================
 
 constexpr uint8_t ADC_BITS = 12;
-constexpr float ADC_REF_V = 3.3f;
 constexpr uint16_t ADC_MAX = (1 << ADC_BITS) - 1;
 
 // =================================================
-// ===== ADC INPUT DIVIDER (shared by analog inputs)
-// Vin -> R1 -> ADC -> R2 -> GND
+// ===== RESISTIVE SENDERS
 // =================================================
 
-constexpr float ADC_DIV_R1 = 6800.0f; // ohms (top resistor)
-constexpr float ADC_DIV_R2 = 2000.0f; // ohms (bottom resistor)
+constexpr float SENDER_SUPPLY_V = 3.3f;
 
-constexpr float ADC_DIV_RATIO =
-	ADC_DIV_R2 / (ADC_DIV_R1 + ADC_DIV_R2); // ≈ 0.22727
-
-constexpr float ADC_DIV_INV =
-	(ADC_DIV_R1 + ADC_DIV_R2) / ADC_DIV_R2; // ≈ 4.4
+constexpr float TEMP_PULLUP_OHMS = 510.0f;
+constexpr float FUEL_PULLUP_OHMS = 330.0f;
 
 // =================================================
-// ===== YUGO TEMP SENSOR (ADC-voltage LUT)
+// ===== YUGO TEMP SENSOR
 // =================================================
-// Note: TempVPoint is defined in AnalogSensors.h
-
-// ORDER: cold → hot (voltage usually rises with temp)
-constexpr TempVPoint TEMP_V_TABLE[] = {
-	{0.35f, 20},
-	{0.55f, 40},
-	{0.80f, 60},
-	{1.05f, 80},
-	{1.30f, 100},
-	{1.50f, 110}};
-
-constexpr size_t TEMP_V_TABLE_SIZE =
-	sizeof(TEMP_V_TABLE) / sizeof(TEMP_V_TABLE[0]);
-
 constexpr int TEMP_MIN_C = 0;
 constexpr int TEMP_MAX_C = 120;
 
