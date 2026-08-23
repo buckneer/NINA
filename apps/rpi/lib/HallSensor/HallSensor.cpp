@@ -1,11 +1,14 @@
 #include "HallSensor.h"
 
-HallSensor* HallSensor::_instance = nullptr;
+HallSensor *HallSensor::_instance = nullptr;
 
-void HallSensor::isr() {
-    if (!_instance) return;
+void HallSensor::isr()
+{
+    if (!_instance)
+        return;
     const uint32_t now = micros();
-    if (now - _instance->_lastPulseUs >= HALL_DEBOUNCE_US) {
+    if (now - _instance->_lastPulseUs >= HALL_DEBOUNCE_US)
+    {
         _instance->_pulseCount++;
         _instance->_lastPulseUs = now;
     }
@@ -14,23 +17,27 @@ void HallSensor::isr() {
 HallSensor::HallSensor(uint8_t pin, float metersPerPulse, uint16_t sampleMs)
     : _pin(pin), _metersPerPulse(metersPerPulse), _sampleMs(sampleMs) {}
 
-void HallSensor::begin() {
+void HallSensor::begin()
+{
     _instance = this;
-    _lastMs   = millis();
-    pinMode(_pin, INPUT_PULLDOWN);
-    attachInterrupt(digitalPinToInterrupt(_pin), HallSensor::isr, RISING);
+    _lastMs = millis();
+    pinMode(_pin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(_pin), HallSensor::isr, FALLING);
 }
 
-void HallSensor::update() {
+void HallSensor::update()
+{
     const uint32_t now = millis();
-    if (now - _lastMs < _sampleMs) return;
+    if (now - _lastMs < _sampleMs)
+        return;
 
     const uint32_t pulses = _pulseCount - _lastSnap;
-    const float    dtSec  = (now - _lastMs) / 1000.0f;
+    const float dtSec = (now - _lastMs) / 1000.0f;
     _lastSnap = _pulseCount;
-    _lastMs   = now;
+    _lastMs = now;
 
-    if (pulses == 0) {
+    if (pulses == 0)
+    {
         _speedKph = 0.0f;
         return;
     }
@@ -39,7 +46,8 @@ void HallSensor::update() {
 
     // Reject implausible jump from standstill to near-max — catches 50 Hz
     // sensor threshold oscillation which reads as ~181 km/h.
-    if (_speedKph < 5.0f && raw > 160.0f) return;
+    if (_speedKph < 5.0f && raw > 160.0f)
+        return;
 
     // Asymmetric EMA: slow to rise (filters noise), fast to fall (real decel).
     const float alpha = (raw < _speedKph) ? 0.5f : 0.2f;
