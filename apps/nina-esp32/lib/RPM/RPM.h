@@ -5,19 +5,19 @@
 #ifndef NINA_RPM_H
 #define NINA_RPM_H
 #pragma once
+
 #include <Arduino.h>
 #include <Multiplex.h>
 
 class RPMMeter
 {
-
 public:
     static constexpr uint8_t TOTAL_LEDS = 29;
     static constexpr uint8_t CHANNELS = 4;
 
     inline static constexpr uint8_t LEDS_PER_REG[CHANNELS] = {8, 8, 8, 5};
 
-    RPMMeter(Multiplex<4> &mux);
+    RPMMeter(Multiplex<4> &mux, uint16_t maxRPM);
 
     void begin();
     void setRPM(uint16_t rpm);
@@ -27,5 +27,7 @@ private:
 
     bool ledStates[TOTAL_LEDS] = {false};
     Multiplex<4> &multiplex;
+    uint16_t maxRPM;
 };
+
 #endif // NINA_RPM_H

@@ -20,11 +20,11 @@ constexpr uint8_t PIN_FUEL_ADC = 32; // Fuel sender (divider)
 
 constexpr uint8_t PIN_RPM = 34; // Ignition / coil pulse (input only)
 constexpr uint8_t PIN_BRAKE = 13;
-constexpr uint8_t PIN_OIL = 14;
+constexpr uint8_t PIN_OIL = 27;
 constexpr uint8_t PIN_INDICATORS = 12; // ⚠ boot strap pin
 constexpr uint8_t PIN_HIGH_BEAM = 26;
 constexpr uint8_t PIN_LIGHTS = 25;
-constexpr uint8_t PIN_FOG = 27;
+constexpr uint8_t PIN_FOG = 14;
 constexpr uint8_t PIN_BATTERY = 33;			   // 4N35 IGN optocoupler output (active-low: LOW = IGN on, HIGH = IGN off)
 constexpr uint8_t PIN_IGN_SLEEP = PIN_BATTERY; // alias used by sleep/wake logic
 

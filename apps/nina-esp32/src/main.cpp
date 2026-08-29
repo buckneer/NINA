@@ -34,7 +34,7 @@ Multiplex<4> rpmMux(RPM_DATA, SRCLK, RPM_LATCH, RPMMeter::CHANNELS, RPM_MUX_MS);
 Multiplex<1> dashMux(DASH_DATA, SRCLK, DASH_LATCH, 1, DASH_MUX_MS);
 
 Speedo speedo(speedoMux);
-RPMMeter rpm(rpmMux);
+RPMMeter rpm(rpmMux, RPM_MAX);
 DashLights dash(dashMux);
 Dashboard dashboard;
 
@@ -94,13 +94,21 @@ void setup()
         enterDeepSleep();
     }
 
+    speedoMux.begin();
+    rpmMux.begin();
+    dashMux.begin();
+
+    speedo.begin();
+    rpm.begin();
+    dash.begin();
+
+    speedo.setSpeed(0);
+    rpm.setRPM(0);
+
     Serial.begin(115200);
-    delay(500);
 
     Wire.begin(TEMP_SDA, TEMP_SCL, 400000);
-    delay(50);
-    I2C_FUEL.begin(FUEL_SDA, FUEL_SCL, 400000); // 400 kHz — needed for 128×64 flush budget
-    delay(50);
+    I2C_FUEL.begin(FUEL_SDA, FUEL_SCL, 400000);
 
     I2CScanner::scan(Wire, "bus0 (Wire)");
     I2CScanner::scan(I2C_FUEL, "bus1 (I2C_FUEL)");
@@ -108,17 +116,10 @@ void setup()
     pico.begin(Wire, I2C_FUEL);
     dashboard.begin(Wire, I2C_FUEL);
 
-    speedoMux.begin();
-    rpmMux.begin();
-    dashMux.begin();
-    speedo.begin();
-    rpm.begin();
-    dash.begin();
     analogs.begin();
     digitalInputs.begin();
     rpmInput.begin();
 
-    // UI — build settings menu then hand off to UIManager
     dashScreen.setWidget(&clockWidget);
 
     settingsMenu.addItem({"Set Clock", nullptr, &clockSet});
@@ -145,6 +146,7 @@ void loop()
     odometer.update(pico.speedKph());
 
     rpm.setRPM(rpmInput.rpm());
+    // rpm.setRPM(7000);
     speedo.setSpeed(pico.speedKph());
 
     dash.setBrakes(digitalInputs.brake());
@@ -155,6 +157,8 @@ void loop()
     dash.setFogLights(digitalInputs.fog());
     dash.setBattery(digitalInputs.battery());
     dash.setLowFuel(analogs.fuelPercent() < LOW_FUEL_THRESHOLD);
+
+    dash.update();
 
     DashState ds;
     ds.fuelPct = analogs.fuelPercent();
