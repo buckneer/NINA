@@ -1,32 +1,56 @@
 #pragma once
+
 #include <Arduino.h>
 
-// Minimum microseconds between counted pulses.
-// At 3200 pulses/mile and 200 km/h the real max rate is ~110 Hz (≈9 ms apart).
-// 3 ms rejects sensor oscillation while comfortably passing genuine pulses.
+// Ignore pulses closer than 3 ms.
+// Real speedometer pulses should never legitimately be this close.
 static constexpr uint32_t HALL_DEBOUNCE_US = 3000;
 
-class HallSensor {
-public:
-    HallSensor(uint8_t pin, float metersPerPulse, uint16_t sampleMs = 200);
+// If we have received no pulse for this long, consider the car stopped.
+// 1.5 seconds gives good low-speed behavior without leaving a speed
+// displayed for too long after stopping.
+static constexpr uint32_t HALL_STOP_TIMEOUT_US = 1500000;
 
-    void     begin();
-    void     update();
-    float    speedKph()   const { return roundf(_speedKph / 5.0f) * 5.0f; }
-    uint32_t pulseCount() const { return _pulseCount; }
+class HallSensor
+{
+public:
+    HallSensor(
+        uint8_t pin,
+        float metersPerPulse,
+        uint16_t sampleMs = 50);
+
+    void begin();
+    void update();
+
+    // Return the actual filtered speed.
+    // No rounding to multiples of 5.
+    float speedKph() const
+    {
+        return _speedKph;
+    }
+
+    uint32_t pulseCount() const
+    {
+        return _pulseCount;
+    }
 
     static void isr();
 
 private:
-    uint8_t  _pin;
-    float    _metersPerPulse;
+    uint8_t _pin;
+    float _metersPerPulse;
     uint16_t _sampleMs;
 
-    volatile uint32_t _pulseCount   = 0;
-    volatile uint32_t _lastPulseUs  = 0;
-    float             _speedKph     = 0.0f;
-    uint32_t          _lastMs       = 0;
-    uint32_t          _lastSnap     = 0;
+    volatile uint32_t _pulseCount = 0;
+    volatile uint32_t _lastPulseUs = 0;
+    volatile uint32_t _lastPeriodUs = 0;
+    volatile uint32_t _lastEdgeUs = 0;
 
-    static HallSensor* _instance;
+    uint32_t _lastProcessedPulseCount = 0;
+    uint32_t _lastUpdateMs = 0;
+
+    float _speedKph = 0.0f;
+    uint32_t _minValidPeriodUs = 0;
+
+    static HallSensor *_instance;
 };

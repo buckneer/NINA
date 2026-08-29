@@ -1,38 +1,62 @@
 #include "AnalogSensors.h"
 #include <math.h>
 
-AnalogSensors::AnalogSensors(const Pins &p, const AnalogSensorsConfig &c)
-    : pins(p), config(c) {}
+AnalogSensors::AnalogSensors(
+    const Pins &p,
+    const AnalogSensorsConfig &c)
+    : pins(p),
+      config(c)
+{
+}
 
 void AnalogSensors::begin()
 {
   analogReadResolution(config.adcBits);
 
-  analogSetPinAttenuation(pins.temp, ADC_11db);
-  analogSetPinAttenuation(pins.fuel, ADC_11db);
+  analogSetPinAttenuation(
+      pins.temp,
+      ADC_11db);
+
+  analogSetPinAttenuation(
+      pins.fuel,
+      ADC_11db);
 }
 
 void AnalogSensors::update()
 {
-  uint16_t rawTemp = analogRead(pins.temp);
-  uint16_t rawFuel = analogRead(pins.fuel);
+  uint16_t rawTemp =
+      analogRead(pins.temp);
 
-  rawTemp = min(rawTemp, config.adcMax);
-  rawFuel = min(rawFuel, config.adcMax);
+  uint16_t rawFuel =
+      analogRead(pins.fuel);
+
+  rawTemp =
+      min(rawTemp, config.adcMax);
+
+  rawFuel =
+      min(rawFuel, config.adcMax);
 
   if (!filterInitialized)
   {
     tempFiltered = rawTemp;
     fuelFiltered = rawFuel;
+
     filterInitialized = true;
     return;
   }
 
-  tempFiltered = tempFiltered * 0.9f + rawTemp * 0.1f;
-  fuelFiltered = fuelFiltered * 0.9f + rawFuel * 0.1f;
+  tempFiltered =
+      tempFiltered * 0.9f +
+      rawTemp * 0.1f;
+
+  fuelFiltered =
+      fuelFiltered * 0.9f +
+      rawFuel * 0.1f;
 }
 
-float AnalogSensors::adcToResistance(float adc, float pullupOhms) const
+float AnalogSensors::adcToResistance(
+    float adc,
+    float pullupOhms) const
 {
   // Sender is a resistor to ground with a 3.3 V pull-up.
   if (adc >= config.adcMax - 1)
@@ -41,9 +65,13 @@ float AnalogSensors::adcToResistance(float adc, float pullupOhms) const
   if (adc <= 0.0f)
     return 0.0f;
 
-  float ratio = adc / static_cast<float>(config.adcMax);
+  const float ratio =
+      adc /
+      static_cast<float>(config.adcMax);
 
-  return pullupOhms * ratio / (1.0f - ratio);
+  return pullupOhms *
+         ratio /
+         (1.0f - ratio);
 }
 
 float AnalogSensors::tempResistanceOhms() const
@@ -60,108 +88,233 @@ float AnalogSensors::fuelResistanceOhms() const
       config.fuelPullupOhms);
 }
 
-int AnalogSensors::interpolateTempFromResistance(float r) const
+// ============================================================================
+// Temperature
+// ============================================================================
+
+int AnalogSensors::interpolateTempFromResistance(
+    float r) const
 {
-  if (!isfinite(r))
-    return config.tempMinC;
-
-  for (size_t i = 0; i < config.tempRTableSize - 1; i++)
+  if (
+      config.tempRTable == nullptr ||
+      config.tempRTableSize < 2 ||
+      !isfinite(r) ||
+      r <= 0.0f)
   {
-    const auto &p1 = config.tempRTable[i];
-    const auto &p2 = config.tempRTable[i + 1];
+    return config.tempMinC;
+  }
 
-    bool between =
-        (r >= p1.resistance && r <= p2.resistance) ||
-        (r <= p1.resistance && r >= p2.resistance);
+  for (
+      size_t i = 0;
+      i < config.tempRTableSize - 1;
+      i++)
+  {
+    const auto &p1 =
+        config.tempRTable[i];
+
+    const auto &p2 =
+        config.tempRTable[i + 1];
+
+    const bool between =
+        (r >= p1.resistance &&
+         r <= p2.resistance) ||
+        (r <= p1.resistance &&
+         r >= p2.resistance);
 
     if (!between)
       continue;
 
-    float t =
-        p1.tempC +
-        (p2.tempC - p1.tempC) *
-            (r - p1.resistance) /
-            (p2.resistance - p1.resistance);
+    // NTC resistance is nonlinear, so interpolate
+    // using logarithmic resistance.
+    const float logR =
+        logf(r);
 
-    return static_cast<int>(t);
+    const float logR1 =
+        logf(p1.resistance);
+
+    const float logR2 =
+        logf(p2.resistance);
+
+    const float ratio =
+        (logR - logR1) /
+        (logR2 - logR1);
+
+    const float temp =
+        p1.tempC +
+        ratio *
+            (p2.tempC - p1.tempC);
+
+    return static_cast<int>(
+        roundf(temp));
   }
 
-  float firstDistance =
-      fabsf(r - config.tempRTable[0].resistance);
+  // Outside calibrated range:
+  // clamp to nearest table endpoint.
 
-  float lastDistance =
-      fabsf(r - config.tempRTable[config.tempRTableSize - 1].resistance);
+  const float firstDistance =
+      fabsf(
+          r -
+          config.tempRTable[0].resistance);
+
+  const float lastDistance =
+      fabsf(
+          r -
+          config.tempRTable[config.tempRTableSize - 1]
+              .resistance);
 
   if (firstDistance < lastDistance)
+  {
     return config.tempRTable[0].tempC;
+  }
 
-  return config.tempRTable[config.tempRTableSize - 1].tempC;
+  return config.tempRTable[config.tempRTableSize - 1]
+      .tempC;
 }
 
 int16_t AnalogSensors::tempC() const
 {
-  // Use real resistance table once calibrated
-  if (config.tempRTable != nullptr && config.tempRTableSize >= 2)
+  if (
+      config.tempRTable != nullptr &&
+      config.tempRTableSize >= 2)
   {
-    int t = interpolateTempFromResistance(tempResistanceOhms());
-    return constrain(t, config.tempMinC, config.tempMaxC);
+    const int t =
+        interpolateTempFromResistance(
+            tempResistanceOhms());
+
+    return constrain(
+        t,
+        config.tempMinC,
+        config.tempMaxC);
   }
 
-  // Temporary fallback: low ADC = hotter sender
-  float ratio = tempFiltered / static_cast<float>(config.adcMax);
+  // Fallback if no table exists.
+  const float ratio =
+      tempFiltered /
+      static_cast<float>(
+          config.adcMax);
 
-  int t =
+  const int t =
       config.tempMaxC -
       static_cast<int>(
-          ratio * (config.tempMaxC - config.tempMinC));
+          ratio *
+          (config.tempMaxC -
+           config.tempMinC));
 
-  return constrain(t, config.tempMinC, config.tempMaxC);
+  return constrain(
+      t,
+      config.tempMinC,
+      config.tempMaxC);
 }
 
 uint8_t AnalogSensors::tempPercent() const
 {
-  int t = tempC();
+  const int t =
+      tempC();
 
-  float pct =
-      static_cast<float>(t - config.tempMinC) /
-      static_cast<float>(config.tempMaxC - config.tempMinC) *
+  const float pct =
+      static_cast<float>(
+          t - config.tempMinC) /
+      static_cast<float>(
+          config.tempMaxC -
+          config.tempMinC) *
       100.0f;
 
   return constrain(
-      static_cast<int>(pct),
+      static_cast<int>(
+          roundf(pct)),
       0,
       100);
 }
 
-uint8_t AnalogSensors::fuelPercent() const
+// ============================================================================
+// Fuel
+// ============================================================================
+
+float AnalogSensors::interpolateFuelFromAdc(
+    float adc) const
 {
-  float r = fuelResistanceOhms();
-
-  // Use real calibration once available
-  if (config.fuelFullOhms != config.fuelEmptyOhms)
+  if (
+      config.fuelTable == nullptr ||
+      config.fuelTableSize < 2)
   {
-    if (!isfinite(r))
-      return 0;
-
-    float pct =
-        (r - config.fuelEmptyOhms) /
-        (config.fuelFullOhms - config.fuelEmptyOhms) *
-        100.0f;
-
-    return constrain(
-        static_cast<int>(pct),
-        0,
-        100);
+    return 0.0f;
   }
 
-  // Temporary fallback: low ADC = fuller tank
-  float ratio =
-      fuelFiltered / static_cast<float>(config.adcMax);
+  for (
+      size_t i = 0;
+      i < config.fuelTableSize - 1;
+      i++)
+  {
+    const auto &p1 =
+        config.fuelTable[i];
 
-  float pct = (1.0f - ratio) * 100.0f;
+    const auto &p2 =
+        config.fuelTable[i + 1];
+
+    const bool between =
+        (adc >= p1.adc &&
+         adc <= p2.adc) ||
+        (adc <= p1.adc &&
+         adc >= p2.adc);
+
+    if (!between)
+      continue;
+
+    const float adcSpan =
+        static_cast<float>(p2.adc) -
+        static_cast<float>(p1.adc);
+
+    if (fabsf(adcSpan) < 0.001f)
+      return p1.percent;
+
+    const float ratio =
+        (adc -
+         static_cast<float>(p1.adc)) /
+        adcSpan;
+
+    return static_cast<float>(p1.percent) +
+           ratio *
+               (static_cast<float>(
+                    p2.percent) -
+                static_cast<float>(
+                    p1.percent));
+  }
+
+  // Outside table range:
+  // clamp to whichever endpoint is closest.
+
+  const auto &first =
+      config.fuelTable[0];
+
+  const auto &last =
+      config.fuelTable[config.fuelTableSize - 1];
+
+  if (
+      fabsf(adc - first.adc) <
+      fabsf(adc - last.adc))
+  {
+    return first.percent;
+  }
+
+  return last.percent;
+}
+
+uint8_t AnalogSensors::fuelPercent() const
+{
+  if (
+      config.fuelTable == nullptr ||
+      config.fuelTableSize < 2)
+  {
+    return 0;
+  }
+
+  const float pct =
+      interpolateFuelFromAdc(
+          fuelFiltered);
 
   return constrain(
-      static_cast<int>(pct),
+      static_cast<int>(
+          roundf(pct)),
       0,
       100);
 }

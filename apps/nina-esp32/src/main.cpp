@@ -22,23 +22,6 @@
 #include <ClockSetScreen.h>
 
 // ============================================================================
-// Power
-// ============================================================================
-
-static void enterDeepSleep()
-{
-    esp_sleep_enable_ext0_wakeup(
-        GPIO_NUM_33,
-        0); // wake on LOW (IGN on)
-
-    Serial.println(
-        "[Power] IGN off — entering deep sleep");
-
-    Serial.flush();
-    esp_deep_sleep_start();
-}
-
-// ============================================================================
 // RPM display slew limiter
 // ============================================================================
 //
@@ -216,14 +199,14 @@ AnalogSensorsConfig analogConfig{
     .tempPullupOhms = TEMP_PULLUP_OHMS,
     .fuelPullupOhms = FUEL_PULLUP_OHMS,
 
-    .tempRTable = nullptr,
-    .tempRTableSize = 0,
+    .tempRTable = TEMP_R_TABLE,
+    .tempRTableSize = TEMP_R_TABLE_SIZE,
+
+    .fuelTable = FUEL_TABLE,
+    .fuelTableSize = FUEL_TABLE_SIZE,
 
     .tempMinC = TEMP_MIN_C,
     .tempMaxC = TEMP_MAX_C,
-
-    .fuelEmptyOhms = 0.0f,
-    .fuelFullOhms = 0.0f,
 };
 
 AnalogSensors analogs(
@@ -260,7 +243,7 @@ RPMInput rpmInput(
 // ============================================================================
 
 PicoLink pico;
-Odometer odometer;
+Odometer odometer(SPEEDO_METERS_PER_PULSE);
 
 // ============================================================================
 // UI
@@ -273,6 +256,28 @@ MenuScreen settingsMenu;
 ClockSetScreen clockSet;
 
 // ============================================================================
+// Power
+// ============================================================================
+
+static void enterDeepSleep(bool saveOdometer)
+{
+    if (saveOdometer)
+    {
+        odometer.save();
+    }
+
+    esp_sleep_enable_ext0_wakeup(
+        GPIO_NUM_33,
+        0); // wake on LOW (IGN on)
+
+    Serial.println(
+        "[Power] IGN off — entering deep sleep");
+
+    Serial.flush();
+    esp_deep_sleep_start();
+}
+
+// ============================================================================
 // Setup
 // ============================================================================
 
@@ -283,13 +288,12 @@ void setup()
         PIN_IGN_SLEEP,
         INPUT);
 
-    if (
-        digitalRead(PIN_IGN_SLEEP) ==
-        HIGH)
+    if (digitalRead(PIN_IGN_SLEEP) == HIGH)
     {
-        enterDeepSleep();
+        // Dashboard has only just booted.
+        // Odometer NVS has not been opened yet, so nothing needs saving.
+        enterDeepSleep(false);
     }
-
     // ======================
     // Multiplexers
     // ======================
@@ -353,6 +357,8 @@ void setup()
     digitalInputs.begin();
     rpmInput.begin();
 
+    odometer.begin();
+
     // ======================
     // UI
     // ======================
@@ -400,7 +406,7 @@ void loop()
 
     if (!digitalInputs.battery())
     {
-        enterDeepSleep();
+        enterDeepSleep(true);
     }
 
     // ======================
@@ -418,8 +424,11 @@ void loop()
     const float currentSpeed =
         pico.speedKph();
 
-    odometer.update(
-        currentSpeed);
+    if (pico.hasData())
+    {
+        odometer.update(
+            pico.pulseCount());
+    }
 
     speedo.setSpeed(
         currentSpeed);
@@ -532,5 +541,42 @@ void loop()
 
         lastLoggedRPM = currentRpm;
         lastRpmLogMs = nowMs;
+    }
+
+    // ========================================================================
+    // Analog calibration logging
+    // ========================================================================
+
+    static uint32_t lastAnalogLogMs = 0;
+
+    if ((nowMs - lastAnalogLogMs) >= 2000)
+    {
+        int tempRaw = analogRead(PIN_TEMP_ADC);
+        int fuelRaw = analogRead(PIN_FUEL_ADC);
+
+        Serial.print("[ADC] TEMP=");
+        Serial.print(tempRaw);
+
+        Serial.print(" | FUEL=");
+        Serial.println(fuelRaw);
+
+        lastAnalogLogMs = nowMs;
+    }
+
+    // ========================================================================
+    // Odometer logging
+    // ========================================================================
+
+    static uint32_t lastOdoLogMs = 0;
+
+    if ((nowMs - lastOdoLogMs) >= 1000)
+    {
+        Serial.printf(
+            "[ODO] pulses=%lu  odo=%.3f km  trip=%.3f km\n",
+            static_cast<unsigned long>(pico.pulseCount()),
+            odometer.km(),
+            odometer.tripKm());
+
+        lastOdoLogMs = nowMs;
     }
 }
