@@ -11,23 +11,23 @@ class DashLights
 public:
     enum Light : uint8_t
     {
-        OIL = 0,        // QA
-        BATTERY = 1,    // QB
-        BRAKES = 2,     // QC
-        LOW_FUEL = 3,   // QD
-        INDICATORS = 4, // QE
-        HEADLIGHTS = 5, // QF
-        FOG_LIGHTS = 6, // QG
-        HIGH_BEAM = 7   // QH
+        BATTERY = 0,
+        BRAKES = 1,
+        OIL = 2,
+        LOW_FUEL = 3,
+        INDICATORS = 4,
+        HEADLIGHTS = 5,
+        FOG_LIGHTS = 6,
+        HIGH_BEAM = 7
     };
 
     DashLights(Multiplex<1> &mux);
 
     void begin();
+    void update();
 
     void setLight(Light light, bool on);
 
-    // Convenience
     void setOil(bool on);
     void setBrakes(bool on);
     void setLowFuel(bool on);
@@ -37,12 +37,16 @@ public:
     void setFogLights(bool on);
     void setHighBeam(bool on);
 
+    void allOff();
+    void allOn();
+
 private:
-    // 🔥 UPDATED
     static void render(uint8_t channel, void *ctx, uint8_t *regs);
 
-    uint8_t shiftState = 0;
+    uint8_t pendingState = 0x00;
+    volatile uint8_t activeState = 0x00;
+
     Multiplex<1> &multiplex;
 };
 
-#endif // NINA_DASHLIGHTS_H
+#endif

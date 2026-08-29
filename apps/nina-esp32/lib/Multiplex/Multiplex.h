@@ -6,6 +6,10 @@
 #include <Arduino.h>
 #include <Ticker.h>
 
+// Shared by ALL Multiplex<> instances.
+// Important because all shift-register banks share SRCLK.
+inline portMUX_TYPE gShiftRegisterMux = portMUX_INITIALIZER_UNLOCKED;
+
 template <uint8_t NUM_REGS>
 class Multiplex
 {
@@ -31,6 +35,10 @@ public:
         pinMode(dataPin, OUTPUT);
         pinMode(clockPin, OUTPUT);
         pinMode(latchPin, OUTPUT);
+
+        digitalWrite(clockPin, LOW);
+        digitalWrite(latchPin, LOW);
+
         clear();
         flush();
     }
@@ -51,21 +59,22 @@ public:
         ticker.detach();
     }
 
-    // 🔥 BACKWARD COMPATIBLE
+    // Backward-compatible renderer
     void setRenderer(void (*fn)(uint8_t, void *), void *userCtx)
     {
         legacyRenderer = fn;
+        renderer = nullptr;
         ctx = userCtx;
     }
 
-    // ✅ NEW preferred renderer
+    // Preferred renderer
     void setRenderer(RenderFn fn, void *userCtx)
     {
         renderer = fn;
+        legacyRenderer = nullptr;
         ctx = userCtx;
     }
 
-    // --- register helpers
     void clear()
     {
         memset(regs, 0, sizeof(regs));
@@ -78,17 +87,31 @@ public:
 
     void flush()
     {
+        portENTER_CRITICAL(&gShiftRegisterMux);
+
         digitalWrite(latchPin, LOW);
-        for (int i = NUM_REGS - 1; i >= 0; i--)
+
+        for (int i = NUM_REGS - 1; i >= 0; --i)
         {
-            shiftOut(dataPin, clockPin, MSBFIRST, regs[i]);
+            shiftOut(
+                dataPin,
+                clockPin,
+                MSBFIRST,
+                regs[i]);
         }
 
+        // Latch the completed data.
         digitalWrite(latchPin, HIGH);
+
+        // Safe idle states.
+        digitalWrite(latchPin, LOW);
+        digitalWrite(dataPin, LOW);
+
+        portEXIT_CRITICAL(&gShiftRegisterMux);
     }
 
 private:
-    void IRAM_ATTR onTick()
+    void onTick()
     {
         clear();
 
@@ -103,12 +126,18 @@ private:
 
         flush();
 
-        currentChannel++;
+        ++currentChannel;
+
         if (currentChannel >= channels)
+        {
             currentChannel = 0;
+        }
     }
 
-    uint8_t dataPin, clockPin, latchPin;
+    uint8_t dataPin;
+    uint8_t clockPin;
+    uint8_t latchPin;
+
     uint8_t regs[NUM_REGS]{};
 
     Ticker ticker;

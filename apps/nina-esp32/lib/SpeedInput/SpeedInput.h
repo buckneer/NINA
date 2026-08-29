@@ -11,17 +11,19 @@ public:
 
 	float speedKph() const;
 
-	// -------- calibration --------
 	void setMetersPerPulse(float mpp);
 	float getMetersPerPulse() const;
 
-	// optional helper for calibration-by-distance
 	void resetPulseCounter();
 	uint32_t pulsesSinceReset() const;
 
 private:
 	static void IRAM_ATTR isr();
+
 	static volatile uint32_t pulseCount;
+	static volatile uint32_t lastPulseUs;
+
+	static constexpr uint32_t MIN_PULSE_US = 10000;
 
 	uint8_t pin;
 	float metersPerPulse;
