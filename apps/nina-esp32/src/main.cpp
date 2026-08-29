@@ -20,6 +20,7 @@
 #include <ClockWidget.h>
 #include <MenuScreen.h>
 #include <ClockSetScreen.h>
+#include <ClockService.h>
 
 // ============================================================================
 // RPM display slew limiter
@@ -47,95 +48,6 @@ static constexpr float RPM_MAX_FALL_PER_SEC = 16000.0f;
 
 static float displayedRPM = 0.0f;
 static uint32_t lastRpmSlewUs = 0;
-
-static uint16_t applyRpmSlewLimit(uint16_t targetRPM)
-{
-    const uint32_t now = micros();
-
-    // First measurement.
-    if (lastRpmSlewUs == 0)
-    {
-        lastRpmSlewUs = now;
-        displayedRPM = static_cast<float>(targetRPM);
-
-        return targetRPM;
-    }
-
-    const uint32_t dtUs =
-        now - lastRpmSlewUs;
-
-    lastRpmSlewUs = now;
-
-    // RPM input says engine stopped.
-    // Go directly to zero.
-    if (targetRPM == 0)
-    {
-        displayedRPM = 0.0f;
-        return 0;
-    }
-
-    const float dtSeconds =
-        static_cast<float>(dtUs) /
-        1000000.0f;
-
-    const float target =
-        static_cast<float>(targetRPM);
-
-    const float maxRise =
-        RPM_MAX_RISE_PER_SEC *
-        dtSeconds;
-
-    const float maxFall =
-        RPM_MAX_FALL_PER_SEC *
-        dtSeconds;
-
-    // ======================
-    // Rising RPM
-    // ======================
-
-    if (target > displayedRPM)
-    {
-        const float difference =
-            target - displayedRPM;
-
-        if (difference > maxRise)
-        {
-            displayedRPM += maxRise;
-        }
-        else
-        {
-            displayedRPM = target;
-        }
-    }
-
-    // ======================
-    // Falling RPM
-    // ======================
-
-    else if (target < displayedRPM)
-    {
-        const float difference =
-            displayedRPM - target;
-
-        if (difference > maxFall)
-        {
-            displayedRPM -= maxFall;
-        }
-        else
-        {
-            displayedRPM = target;
-        }
-    }
-
-    // Safety
-    if (displayedRPM < 0.0f)
-    {
-        displayedRPM = 0.0f;
-    }
-
-    return static_cast<uint16_t>(
-        displayedRPM + 0.5f);
-}
 
 // ============================================================================
 // I2C
@@ -318,6 +230,7 @@ void setup()
     // ======================
 
     Serial.begin(115200);
+    ClockService::initializeIfNeeded();
 
     // ======================
     // I2C

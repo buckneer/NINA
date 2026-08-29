@@ -44,13 +44,11 @@ private:
     volatile uint32_t _pulseCount = 0;
     volatile uint32_t _lastPulseUs = 0;
     volatile uint32_t _lastPeriodUs = 0;
-    volatile uint32_t _lastEdgeUs = 0;
 
     uint32_t _lastProcessedPulseCount = 0;
     uint32_t _lastUpdateMs = 0;
 
     float _speedKph = 0.0f;
-    uint32_t _minValidPeriodUs = 0;
 
     static HallSensor *_instance;
 };

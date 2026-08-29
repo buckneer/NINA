@@ -8,15 +8,10 @@ void HallSensor::isr()
         return;
 
     const uint32_t now = micros();
+    const uint32_t last = _instance->_lastPulseUs;
 
-    const uint32_t lastEdge =
-        _instance->_lastEdgeUs;
-
-    // Track every electrical edge, including rejected ones.
-    _instance->_lastEdgeUs = now;
-
-    // Very first edge.
-    if (lastEdge == 0)
+    // First pulse.
+    if (last == 0)
     {
         _instance->_lastPulseUs = now;
         _instance->_lastPeriodUs = 0;
@@ -24,26 +19,18 @@ void HallSensor::isr()
         return;
     }
 
-    const uint32_t edgePeriod =
-        now - lastEdge;
+    const uint32_t period =
+        now - last;
 
-    // Electrical chatter.
-    if (edgePeriod < HALL_DEBOUNCE_US)
-        return;
-
-    // Pulse rate corresponds to an impossible vehicle speed.
+    // Reject very-close chatter/noise.
     //
-    // Because lastEdge tracks rejected edges too, continuous
-    // high-frequency oscillation cannot slowly sneak through.
-    if (edgePeriod < _instance->_minValidPeriodUs)
+    // IMPORTANT:
+    // Do NOT update _lastPulseUs when rejecting.
+    if (period < HALL_DEBOUNCE_US)
         return;
 
-    const uint32_t lastPulse =
-        _instance->_lastPulseUs;
-
-    // First accepted pulse after a long standstill.
-    if (lastPulse == 0 ||
-        (now - lastPulse) > HALL_STOP_TIMEOUT_US)
+    // First pulse after standstill.
+    if (period > HALL_STOP_TIMEOUT_US)
     {
         _instance->_lastPulseUs = now;
         _instance->_lastPeriodUs = 0;
@@ -52,9 +39,7 @@ void HallSensor::isr()
     }
 
     // Valid pulse.
-    _instance->_lastPeriodUs =
-        now - lastPulse;
-
+    _instance->_lastPeriodUs = period;
     _instance->_lastPulseUs = now;
 
     _instance->_pulseCount++;
@@ -68,17 +53,7 @@ HallSensor::HallSensor(
       _metersPerPulse(metersPerPulse),
       _sampleMs(sampleMs)
 {
-    static constexpr float MAX_VALID_SPEED_KPH = 170.0f;
-
-    const float maxMetersPerSecond =
-        MAX_VALID_SPEED_KPH / 3.6f;
-
-    _minValidPeriodUs =
-        static_cast<uint32_t>(
-            (_metersPerPulse / maxMetersPerSecond) *
-            1000000.0f);
 }
-
 void HallSensor::begin()
 {
     _instance = this;
@@ -86,7 +61,6 @@ void HallSensor::begin()
     _pulseCount = 0;
     _lastPulseUs = 0;
     _lastPeriodUs = 0;
-    _lastEdgeUs = 0;
 
     _lastProcessedPulseCount = 0;
     _lastUpdateMs = millis();
