@@ -21,27 +21,9 @@
 #include <MenuScreen.h>
 #include <ClockSetScreen.h>
 #include <ClockService.h>
-
-// ============================================================================
-// RPM display slew limiter
-// ============================================================================
-//
-// RPMInput does the actual signal processing.
-//
-// This final limiter protects the visible RPM bar from physically impossible
-// jumps such as:
-//
-//      2600 -> 4300 RPM in 5 ms
-//
-// A real engine cannot change RPM that quickly, so we limit how fast the
-// displayed value is allowed to move.
-//
-// IMPORTANT:
-// These are NOT hard RPM jump limits.
-// They are rates measured in RPM per second.
-//
-// Therefore genuine fast revving is still allowed.
-//
+#include <OTAScreen.h>
+#include <WiFiManager.h>
+#include <InfoScreen.h>
 
 static constexpr float RPM_MAX_RISE_PER_SEC = 12000.0f;
 static constexpr float RPM_MAX_FALL_PER_SEC = 16000.0f;
@@ -166,6 +148,14 @@ DashScreen dashScreen;
 ClockWidget clockWidget;
 MenuScreen settingsMenu;
 ClockSetScreen clockSet;
+InfoScreen infoScreen;
+
+WiFiManager wifiManager;
+OTAService otaService;
+
+OTAScreen otaScreen(
+    wifiManager,
+    otaService);
 
 // ============================================================================
 // Power
@@ -290,6 +280,18 @@ void setup()
          {
              odometer.resetTrip();
          }});
+
+    settingsMenu.addItem(
+        MenuItem(
+            "OTA Update",
+            nullptr,
+            &otaScreen));
+
+    settingsMenu.addItem(
+        MenuItem(
+            "Vehicle Info",
+            nullptr,
+            &infoScreen));
 
     ui.setMenu(
         settingsMenu);

@@ -1,7 +1,6 @@
 #pragma once
 #include <Arduino.h>
 #include <AnalogSensors.h>
-
 // ─────────────────────────────────────────────
 // NINABrain – Hardware Configuration
 // Single source of truth
